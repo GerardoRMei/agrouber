@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'pages/login.dart';
 
 void main() {
   runApp(const CampoApp());
@@ -17,7 +18,8 @@ class CampoApp extends StatelessWidget {
         scaffoldBackgroundColor: const Color(0xFFF3F0EA),
         fontFamily: 'Arial',
       ),
-      home: const BuyerHomePage(),
+      //home: const BuyerHomePage(),
+      home: const WebLoginPage(),
     );
   }
 }
