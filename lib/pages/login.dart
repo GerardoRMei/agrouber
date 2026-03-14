@@ -1,4 +1,19 @@
+import 'package:agrouber/pages/buyer_home_page.dart';
 import 'package:flutter/material.dart';
+import '../models/user.dart';
+
+const User dummyUser = User(
+  username: 'Gerry',
+  password: 'DummyPass',
+  email: 'gerrydum@ejemplo.com',
+  phoneNumber: '123-456-7890',
+  address: '123 Main St, City, State 12345',
+);
+
+
+bool isUserValid(String username, String password) {
+  return username == dummyUser.username && password == dummyUser.password;
+}
 
 class WebLoginPage extends StatelessWidget {
   const WebLoginPage({super.key});
@@ -202,6 +217,16 @@ class _FormSection extends StatefulWidget {
 class _FormSectionState extends State<_FormSection> {
   bool _isPasswordVisible = false;
 
+  final TextEditingController _usernameController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+
+  @override
+  void dispose() {
+    _usernameController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
   void _togglePasswordVisibility() {
     setState(() {
       _isPasswordVisible = !_isPasswordVisible;
@@ -251,9 +276,10 @@ class _FormSectionState extends State<_FormSection> {
             ),
           ),
           const SizedBox(height: 10),
-          const _LoginTextField(
+          _LoginTextField(
             hintText: 'your@example.com',
             prefixIcon: Icons.mail_outline,
+            controller: _usernameController,    
           ),
 
           const SizedBox(height: 20),
@@ -273,24 +299,11 @@ class _FormSectionState extends State<_FormSection> {
             prefixIcon: Icons.lock_outline,
             suffixIcon: _isPasswordVisible ? Icons.visibility_off_outlined : Icons.visibility_outlined,
             obscureText: !_isPasswordVisible,
+            controller: _passwordController,
             onSuffixPressed: _togglePasswordVisibility,
           ),
 
           const SizedBox(height: 10),
-
-          Align(
-            alignment: Alignment.centerRight,
-            child: TextButton(
-              onPressed: () {},
-              child: const Text(
-                'Forgot password?',
-                style: TextStyle(
-                  color: Color(0xFF6D675E),
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ),
 
           const SizedBox(height: 12),
 
@@ -298,7 +311,19 @@ class _FormSectionState extends State<_FormSection> {
             width: double.infinity,
             height: 58,
             child: ElevatedButton(
-              onPressed: () {},
+              onPressed: () {
+                if (isUserValid(_usernameController.text, _passwordController.text)) {
+                  Navigator.push(context,MaterialPageRoute(builder: (context) => const BuyerHomePage(),),);
+                } else{
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Invalid username or password'),
+                      backgroundColor: Colors.redAccent,
+                    ),
+                  );
+                }
+                
+              },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF284826),
                 foregroundColor: Colors.white,
@@ -351,6 +376,7 @@ class _LoginTextField extends StatelessWidget {
   final IconData? suffixIcon;
   final bool obscureText;
   final VoidCallback? onSuffixPressed;
+  final TextEditingController? controller;
 
   const _LoginTextField({
     required this.hintText,
@@ -358,6 +384,7 @@ class _LoginTextField extends StatelessWidget {
     this.suffixIcon,
     this.obscureText = false,
     this.onSuffixPressed,
+    this.controller,
   });
 
   @override
