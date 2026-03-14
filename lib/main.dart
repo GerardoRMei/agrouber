@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-// Importamos los nuevos archivos que creamos
 import 'pages/buyer_home_page.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 void main() {
   runApp(const CampoApp());
@@ -17,7 +17,7 @@ class CampoApp extends StatelessWidget {
       theme: ThemeData(
         useMaterial3: true,
         scaffoldBackgroundColor: const Color(0xFFF3F0EA),
-        fontFamily: 'Arial',
+        fontFamily: GoogleFonts.inter().fontFamily,
       ),
       home: const BuyerHomePage(), 
     );
