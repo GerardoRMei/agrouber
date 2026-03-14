@@ -3,7 +3,7 @@ class Product {
   final String producer;
   final String price;
   final String unit;
-  final String emoji;
+  final String image;
   final String tag;
   final String category;
 
@@ -12,7 +12,7 @@ class Product {
     required this.producer,
     required this.price,
     required this.unit,
-    required this.emoji,
+    required this.image,
     required this.tag,
     required this.category,
   });

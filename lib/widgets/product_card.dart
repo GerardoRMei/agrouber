@@ -61,7 +61,7 @@ class _ProductImageHeader extends StatelessWidget {
               ),
             ),
           ),
-          Center(child: Text(product.emoji, style: const TextStyle(fontSize: 58))),
+          Center(child: Text(product.image, style: const TextStyle(fontSize: 58))),
         ],
       ),
     );
