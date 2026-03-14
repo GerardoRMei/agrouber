@@ -1,5 +1,8 @@
 import '../models/product.dart';
 import '../models/seller.dart';
+import '../models/user.dart';
+
+
 
 final List<Seller> mockSellers = [
   Seller(
@@ -119,5 +122,29 @@ final List<Seller> mockSellers = [
       const Product(name: 'Banana', producer: 'El Huerto Familiar', price: '\$18', unit: '/kg', image: '🍌', tag: '2 days', category: 'Fruits'),
       const Product(name: 'Apple', producer: 'El Huerto Familiar', price: '\$35', unit: '/kg', image: '🍎', tag: 'Today', category: 'Fruits'),
     ],
+  ),
+];
+
+final List<User> mockUsers = [
+  User(
+    username: 'Gerry',
+    password: 'DummyPass',
+    email: 'gerrydum@ejemplo.com',
+    phoneNumber: '123-456-7890',
+    address: '123 Main St, City, State 12345',
+  ),
+  User(
+    username: 'Alice',
+    password: 'Pass123',
+    email: 'alice@example.com',
+    phoneNumber: '987-654-3210',
+    address: '456 Elm St, Town, State 67890',
+  ),
+  User(
+    username: 'Bob',
+    password: 'Secure456',
+    email: 'bob@test.com',
+    phoneNumber: '555-123-4567',
+    address: '789 Oak Ave, Village, State 10101',
   ),
 ];

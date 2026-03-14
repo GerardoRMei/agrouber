@@ -1,18 +1,11 @@
 import 'package:agrouber/pages/buyer_home_page.dart';
 import 'package:flutter/material.dart';
 import '../models/user.dart';
-
-const User dummyUser = User(
-  username: 'Gerry',
-  password: 'DummyPass',
-  email: 'gerrydum@ejemplo.com',
-  phoneNumber: '123-456-7890',
-  address: '123 Main St, City, State 12345',
-);
+import '../data/mock_data.dart';
 
 
 bool isUserValid(String username, String password) {
-  return username == dummyUser.username && password == dummyUser.password;
+  return mockUsers.any((user) => user.username == username && user.password == password);
 }
 
 class WebLoginPage extends StatelessWidget {
