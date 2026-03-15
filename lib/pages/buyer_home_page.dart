@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import '../data/mock_data.dart';
+import '../models/user.dart';
 import '../widgets/home_app_bar.dart';
 import '../widgets/welcome_header.dart';
 import '../widgets/market_product_card.dart';
 
 class BuyerHomePage extends StatefulWidget {
-  const BuyerHomePage({super.key});
+  final User user;
+
+  const BuyerHomePage({super.key, required this.user});
 
   @override
   State<BuyerHomePage> createState() => _BuyerHomePageState();
@@ -88,7 +91,7 @@ class _BuyerHomePageState extends State<BuyerHomePage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const WelcomeHeader(userName: 'Gerard'),
+                        WelcomeHeader(userName: widget.user.username),
                         const SizedBox(height: 24),
                         _buildSearchAndFilters(),
                         const SizedBox(height: 32),

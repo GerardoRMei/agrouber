@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'pages/buyer_home_page.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'pages/login.dart';
 
+import 'pages/login.dart';
 void main() {
   runApp(const CampoApp());
 }
@@ -19,7 +21,7 @@ class CampoApp extends StatelessWidget {
         scaffoldBackgroundColor: const Color(0xFFF3F0EA),
         fontFamily: GoogleFonts.inter().fontFamily,
       ),
-      home: const BuyerHomePage(), 
+      home: const WebLoginPage(), 
     );
   }
 }
