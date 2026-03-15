@@ -129,7 +129,7 @@ final List<User> mockUsers = [
   User(
     username: 'Gerry',
     password: 'DummyPass',
-    email: 'gerrydum@ejemplo.com',
+    email: 'gerry@example.com',
     phoneNumber: '123-456-7890',
     address: '123 Main St, City, State 12345',
   ),
