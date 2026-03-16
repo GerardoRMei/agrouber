@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
-import '../data/mock_data.dart';
+
+import '../models/auth_session.dart';
 import '../widgets/login_layout.dart';
 
-bool isUserValid(String email, String password) {
-  return mockUsers.any((user) => user.email == email && user.password == password);
-}
-
 class WebLoginPage extends StatelessWidget {
-  const WebLoginPage({super.key});
+  const WebLoginPage({
+    super.key,
+    required this.onLoginSuccess,
+  });
+
+  final ValueChanged<AuthSession> onLoginSuccess;
 
   @override
   Widget build(BuildContext context) {
@@ -36,8 +38,8 @@ class WebLoginPage extends StatelessWidget {
                     ],
                   ),
                   child: isDesktop
-                      ? const DesktopLoginLayout()
-                      : const MobileLoginLayout(),
+                      ? DesktopLoginLayout(onLoginSuccess: onLoginSuccess)
+                      : MobileLoginLayout(onLoginSuccess: onLoginSuccess),
                 ),
               ),
             );
@@ -47,4 +49,3 @@ class WebLoginPage extends StatelessWidget {
     );
   }
 }
-
