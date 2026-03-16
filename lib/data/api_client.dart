@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 
 import '../models/auth_session.dart';
@@ -8,10 +9,10 @@ import '../models/marketplace_product.dart';
 class ApiClient {
   ApiClient({http.Client? httpClient}) : _httpClient = httpClient ?? http.Client();
 
-  static const String apiBaseUrl = String.fromEnvironment(
-    'API_BASE_URL',
-    defaultValue: 'http://localhost:1337',
-  );
+  static String get apiBaseUrl =>
+      dotenv.env['API_BASE_URL']?.trim().isNotEmpty == true
+          ? dotenv.env['API_BASE_URL']!.trim()
+          : 'http://localhost:1337';
 
   final http.Client _httpClient;
 
