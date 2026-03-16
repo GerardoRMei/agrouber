@@ -1,7 +1,15 @@
 import 'package:flutter/material.dart';
 
+import '../data/api_client.dart';
+import '../models/auth_session.dart';
+
 class WebLoginPage extends StatelessWidget {
-  const WebLoginPage({super.key});
+  const WebLoginPage({
+    super.key,
+    required this.onLoginSuccess,
+  });
+
+  final ValueChanged<AuthSession> onLoginSuccess;
 
   @override
   Widget build(BuildContext context) {
@@ -10,8 +18,8 @@ class WebLoginPage extends StatelessWidget {
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final bool isDesktop = constraints.maxWidth >= 900;
-            final double cardWidth = isDesktop ? 1100 : 420;
+            final isDesktop = constraints.maxWidth >= 900;
+            final cardWidth = isDesktop ? 1100.0 : 420.0;
 
             return Center(
               child: SingleChildScrollView(
@@ -30,8 +38,8 @@ class WebLoginPage extends StatelessWidget {
                     ],
                   ),
                   child: isDesktop
-                      ? const _DesktopLoginLayout()
-                      : const _MobileLoginLayout(),
+                      ? _DesktopLoginLayout(onLoginSuccess: onLoginSuccess)
+                      : _MobileLoginLayout(onLoginSuccess: onLoginSuccess),
                 ),
               ),
             );
@@ -43,20 +51,22 @@ class WebLoginPage extends StatelessWidget {
 }
 
 class _DesktopLoginLayout extends StatelessWidget {
-  const _DesktopLoginLayout();
+  const _DesktopLoginLayout({required this.onLoginSuccess});
+
+  final ValueChanged<AuthSession> onLoginSuccess;
 
   @override
   Widget build(BuildContext context) {
     return IntrinsicHeight(
       child: Row(
-        children: const [
-          Expanded(
+        children: [
+          const Expanded(
             flex: 5,
             child: _HeroSection(),
           ),
           Expanded(
             flex: 6,
-            child: _FormSection(),
+            child: _FormSection(onLoginSuccess: onLoginSuccess),
           ),
         ],
       ),
@@ -65,23 +75,28 @@ class _DesktopLoginLayout extends StatelessWidget {
 }
 
 class _MobileLoginLayout extends StatelessWidget {
-  const _MobileLoginLayout();
+  const _MobileLoginLayout({required this.onLoginSuccess});
+
+  final ValueChanged<AuthSession> onLoginSuccess;
 
   @override
   Widget build(BuildContext context) {
-    return const Column(
+    return Column(
       children: [
-        _HeroSection(isMobile: true),
-        _FormSection(isMobile: true),
+        const _HeroSection(isMobile: true),
+        _FormSection(
+          isMobile: true,
+          onLoginSuccess: onLoginSuccess,
+        ),
       ],
     );
   }
 }
 
 class _HeroSection extends StatelessWidget {
-  final bool isMobile;
-
   const _HeroSection({this.isMobile = false});
+
+  final bool isMobile;
 
   @override
   Widget build(BuildContext context) {
@@ -100,7 +115,6 @@ class _HeroSection extends StatelessWidget {
           topLeft: const Radius.circular(28),
           bottomLeft: isMobile ? Radius.zero : const Radius.circular(28),
           topRight: const Radius.circular(28),
-          bottomRight: isMobile ? Radius.zero : Radius.zero,
         ),
       ),
       child: Column(
@@ -119,10 +133,10 @@ class _HeroSection extends StatelessWidget {
                 ),
                 child: const Center(
                   child: Text(
-                    'LOGO',
+                    'AG',
                     style: TextStyle(
                       color: Color(0xFFE5DED2),
-                      fontSize: 11,
+                      fontSize: 18,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -130,14 +144,13 @@ class _HeroSection extends StatelessWidget {
               ),
               const SizedBox(width: 14),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(color: const Color(0xFF6F685E)),
                 ),
                 child: const Text(
-                  'APP NAME',
+                  'AGROUBER',
                   style: TextStyle(
                     color: Color(0xFFE5DED2),
                     fontSize: 11,
@@ -181,9 +194,9 @@ class _HeroSection extends StatelessWidget {
                   color: Colors.white.withOpacity(0.08),
                 ),
               ),
-              
+             
             ),
-          ]
+          ],
         ],
       ),
     );
@@ -191,21 +204,86 @@ class _HeroSection extends StatelessWidget {
 }
 
 class _FormSection extends StatefulWidget {
-  final bool isMobile;
+  const _FormSection({
+    this.isMobile = false,
+    required this.onLoginSuccess,
+  });
 
-  const _FormSection({this.isMobile = false});
+  final bool isMobile;
+  final ValueChanged<AuthSession> onLoginSuccess;
 
   @override
-  _FormSectionState createState() => _FormSectionState();
+  State<_FormSection> createState() => _FormSectionState();
 }
 
 class _FormSectionState extends State<_FormSection> {
-  bool _isPasswordVisible = false;
+  final ApiClient _apiClient = ApiClient();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
 
-  void _togglePasswordVisibility() {
+  bool _isPasswordVisible = false;
+  bool _isSubmitting = false;
+  String? _errorMessage;
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    FocusScope.of(context).unfocus();
+
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+
+    if (email.isEmpty || password.isEmpty) {
+      setState(() {
+        _errorMessage = 'Escribe tu correo y tu contrasena.';
+      });
+      return;
+    }
+
     setState(() {
-      _isPasswordVisible = !_isPasswordVisible;
+      _isSubmitting = true;
+      _errorMessage = null;
     });
+
+    try {
+      final session = await _apiClient.login(
+        identifier: email,
+        password: password,
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      widget.onLoginSuccess(session);
+    } on ApiException catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _errorMessage = error.message;
+      });
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _errorMessage = 'No fue posible conectar con el backend.';
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+        });
+      }
+    }
   }
 
   @override
@@ -240,7 +318,6 @@ class _FormSectionState extends State<_FormSection> {
             ),
           ),
           SizedBox(height: widget.isMobile ? 24 : 32),
-
           const Text(
             'EMAIL',
             style: TextStyle(
@@ -251,13 +328,13 @@ class _FormSectionState extends State<_FormSection> {
             ),
           ),
           const SizedBox(height: 10),
-          const _LoginTextField(
+          _LoginTextField(
+            controller: _emailController,
             hintText: 'your@example.com',
             prefixIcon: Icons.mail_outline,
+            onSubmitted: (_) => _submit(),
           ),
-
           const SizedBox(height: 20),
-
           const Text(
             'PASSWORD',
             style: TextStyle(
@@ -269,15 +346,32 @@ class _FormSectionState extends State<_FormSection> {
           ),
           const SizedBox(height: 10),
           _LoginTextField(
-            hintText: '••••••••',
+            controller: _passwordController,
+            hintText: '********',
             prefixIcon: Icons.lock_outline,
-            suffixIcon: _isPasswordVisible ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+            suffixIcon: _isPasswordVisible
+                ? Icons.visibility_off_outlined
+                : Icons.visibility_outlined,
             obscureText: !_isPasswordVisible,
-            onSuffixPressed: _togglePasswordVisibility,
+            onSuffixPressed: () {
+              setState(() {
+                _isPasswordVisible = !_isPasswordVisible;
+              });
+            },
+            onSubmitted: (_) => _submit(),
           ),
-
+          if (_errorMessage != null) ...[
+            const SizedBox(height: 12),
+            Text(
+              _errorMessage!,
+              style: const TextStyle(
+                color: Colors.redAccent,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
           const SizedBox(height: 10),
-
           Align(
             alignment: Alignment.centerRight,
             child: TextButton(
@@ -291,14 +385,12 @@ class _FormSectionState extends State<_FormSection> {
               ),
             ),
           ),
-
           const SizedBox(height: 12),
-
           SizedBox(
             width: double.infinity,
             height: 58,
             child: ElevatedButton(
-              onPressed: () {},
+              onPressed: _isSubmitting ? null : _submit,
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF284826),
                 foregroundColor: Colors.white,
@@ -307,18 +399,25 @@ class _FormSectionState extends State<_FormSection> {
                   borderRadius: BorderRadius.circular(16),
                 ),
               ),
-              child: const Text(
-                'Sign In →',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
+              child: _isSubmitting
+                  ? const SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.5,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    )
+                  : const Text(
+                      'Sign In ->',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
             ),
           ),
-
           const SizedBox(height: 20),
-
           Center(
             child: RichText(
               text: const TextSpan(
@@ -346,24 +445,30 @@ class _FormSectionState extends State<_FormSection> {
 }
 
 class _LoginTextField extends StatelessWidget {
-  final String hintText;
-  final IconData prefixIcon;
-  final IconData? suffixIcon;
-  final bool obscureText;
-  final VoidCallback? onSuffixPressed;
-
   const _LoginTextField({
+    required this.controller,
     required this.hintText,
     required this.prefixIcon,
     this.suffixIcon,
     this.obscureText = false,
     this.onSuffixPressed,
+    this.onSubmitted,
   });
+
+  final TextEditingController controller;
+  final String hintText;
+  final IconData prefixIcon;
+  final IconData? suffixIcon;
+  final bool obscureText;
+  final VoidCallback? onSuffixPressed;
+  final ValueChanged<String>? onSubmitted;
 
   @override
   Widget build(BuildContext context) {
     return TextField(
+      controller: controller,
       obscureText: obscureText,
+      onSubmitted: onSubmitted,
       decoration: InputDecoration(
         filled: true,
         fillColor: const Color(0xFFF1EBE3),
