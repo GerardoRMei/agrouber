@@ -6,10 +6,10 @@ class User {
   final String address;
 
   const User({
-    required this.username, 
-    required this.password, 
-    required this.email, 
-    required this.phoneNumber, 
-    required this.address });
+    required this.username,
+    required this.password,
+    required this.email,
+    required this.phoneNumber,
+    required this.address,
+  });
 }
-

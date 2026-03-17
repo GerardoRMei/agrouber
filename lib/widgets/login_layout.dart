@@ -1,23 +1,29 @@
 import 'package:flutter/material.dart';
+
+import '../models/auth_session.dart';
 import 'login_forumSection.dart';
 import 'login_heroSection.dart';
 
-
 class DesktopLoginLayout extends StatelessWidget {
-  const DesktopLoginLayout({super.key});
+  const DesktopLoginLayout({
+    super.key,
+    required this.onLoginSuccess,
+  });
+
+  final ValueChanged<AuthSession> onLoginSuccess;
 
   @override
   Widget build(BuildContext context) {
     return IntrinsicHeight(
       child: Row(
-        children: const [
-          Expanded(
+        children: [
+          const Expanded(
             flex: 5,
             child: HeroSection(),
           ),
           Expanded(
             flex: 6,
-            child: FormSection(),
+            child: FormSection(onLoginSuccess: onLoginSuccess),
           ),
         ],
       ),
@@ -26,14 +32,22 @@ class DesktopLoginLayout extends StatelessWidget {
 }
 
 class MobileLoginLayout extends StatelessWidget {
-  const MobileLoginLayout({super.key});
+  const MobileLoginLayout({
+    super.key,
+    required this.onLoginSuccess,
+  });
+
+  final ValueChanged<AuthSession> onLoginSuccess;
 
   @override
   Widget build(BuildContext context) {
-    return const Column(
+    return Column(
       children: [
-        HeroSection(isMobile: true),
-        FormSection(isMobile: true),
+        const HeroSection(isMobile: true),
+        FormSection(
+          isMobile: true,
+          onLoginSuccess: onLoginSuccess,
+        ),
       ],
     );
   }

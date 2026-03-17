@@ -103,7 +103,6 @@ class HeroSection extends StatelessWidget {
                   color: Colors.white.withOpacity(0.08),
                 ),
               ),
-              
             ),
           ]
         ],

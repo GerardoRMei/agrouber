@@ -1,27 +1,31 @@
 import 'package:flutter/material.dart';
 
 class LoginTextField extends StatelessWidget {
-  final String hintText;
-  final IconData prefixIcon;
-  final IconData? suffixIcon;
-  final bool obscureText;
-  final VoidCallback? onSuffixPressed;
-  final TextEditingController? controller;
-
-  const LoginTextField({super.key, 
+  const LoginTextField({
+    super.key,
     required this.hintText,
     required this.prefixIcon,
     this.suffixIcon,
     this.obscureText = false,
     this.onSuffixPressed,
     this.controller,
+    this.onSubmitted,
   });
+
+  final String hintText;
+  final IconData prefixIcon;
+  final IconData? suffixIcon;
+  final bool obscureText;
+  final VoidCallback? onSuffixPressed;
+  final TextEditingController? controller;
+  final ValueChanged<String>? onSubmitted;
 
   @override
   Widget build(BuildContext context) {
     return TextField(
       controller: controller,
       obscureText: obscureText,
+      onSubmitted: onSubmitted,
       decoration: InputDecoration(
         filled: true,
         fillColor: const Color(0xFFF1EBE3),
