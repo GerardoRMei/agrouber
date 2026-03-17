@@ -9,12 +9,12 @@ import '../models/marketplace_product.dart';
 class ApiClient {
   ApiClient({http.Client? httpClient}) : _httpClient = httpClient ?? http.Client();
 
-  static String get apiBaseUrl =>
+  final http.Client _httpClient;
+
+  String get apiBaseUrl =>
       dotenv.env['API_BASE_URL']?.trim().isNotEmpty == true
           ? dotenv.env['API_BASE_URL']!.trim()
           : 'http://localhost:1337';
-
-  final http.Client _httpClient;
 
   Uri _uri(String path, [Map<String, String>? queryParameters]) {
     final base = Uri.parse(apiBaseUrl);

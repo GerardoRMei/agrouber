@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'pages/buyer_home_page.dart';
 import 'package:google_fonts/google_fonts.dart';
+
 import 'models/auth_session.dart';
+import 'pages/buyer_home_page.dart';
 import 'pages/login.dart';
 
 Future<void> main() async {
