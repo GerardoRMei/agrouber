@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../data/api_client.dart';
 import '../models/auth_session.dart';
+import '../pages/register_page.dart';
 import 'login_textFields.dart';
 
 class FormSection extends StatefulWidget {
@@ -209,22 +210,36 @@ class _FormSectionState extends State<FormSection> {
           ),
           const SizedBox(height: 20),
           Center(
-            child: RichText(
-              text: const TextSpan(
-                style: TextStyle(
-                  color: Color(0xFF8F877C),
-                  fontSize: 14,
-                ),
-                children: [
-                  TextSpan(text: "Don't have an account? "),
-                  TextSpan(
-                    text: 'Create one',
-                    style: TextStyle(
-                      color: Color(0xFF2A1B10),
-                      fontWeight: FontWeight.w800,
-                    ),
+            child: TextButton(
+              onPressed: () {
+           
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const RegisterPage(),
                   ),
-                ],
+                );
+              },
+              style: TextButton.styleFrom(
+                foregroundColor: const Color(0xFF2A1B10),
+                padding: EdgeInsets.zero,
+              ),
+              child: RichText(
+                text: TextSpan(
+                  style: TextStyle(
+                    color: Color(0xFF8F877C),
+                    fontSize: 14,
+                  ),
+                  children: [
+                    TextSpan(text: "Don't have an account? "),
+                    TextSpan(
+                      text: 'Create one',
+                      style: TextStyle(
+                        color: Color(0xFF2A1B10),
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
