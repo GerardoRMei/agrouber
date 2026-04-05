@@ -1,25 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:google_fonts/google_fonts.dart';
 
-import 'models/auth_session.dart';
+import 'features/auth/models/auth_session.dart';
+import 'features/auth/presentation/screens/auth_entry_screen.dart';
+import 'features/seller/presentation/screens/seller_home_page.dart';
 import 'pages/buyer_home_page.dart';
-import 'pages/login.dart';
+import 'shared/theme/agrorun_theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: '.env');
-  runApp(const CampoApp());
+  runApp(const AgrorunApp());
 }
 
-class CampoApp extends StatefulWidget {
-  const CampoApp({super.key});
+class AgrorunApp extends StatefulWidget {
+  const AgrorunApp({super.key});
 
   @override
-  State<CampoApp> createState() => _CampoAppState();
+  State<AgrorunApp> createState() => _AgrorunAppState();
 }
 
-class _CampoAppState extends State<CampoApp> {
+class _AgrorunAppState extends State<AgrorunApp> {
   AuthSession? _session;
 
   void _handleLogin(AuthSession session) {
@@ -28,19 +29,38 @@ class _CampoAppState extends State<CampoApp> {
     });
   }
 
+  void _handleSessionChanged(AuthSession session) {
+    setState(() {
+      _session = session;
+    });
+  }
+
+  void _handleLogout() {
+    setState(() {
+      _session = null;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      key: ValueKey<String>(_session == null ? 'guest' : 'user-${_session!.userId}-${_session!.roleType}'),
       debugShowCheckedModeBanner: false,
-      title: 'Campo',
-      theme: ThemeData(
-        useMaterial3: true,
-        scaffoldBackgroundColor: const Color(0xFFF3F0EA),
-        fontFamily: GoogleFonts.inter().fontFamily,
-      ),
+      title: 'Agrorun',
+      theme: AgrorunTheme.light,
       home: _session == null
-          ? WebLoginPage(onLoginSuccess: _handleLogin)
-          : BuyerHomePage(session: _session!),
+          ? AuthEntryScreen(onLoginSuccess: _handleLogin)
+          : _session!.roleType == 'seller'
+              ? SellerHomePage(
+                  session: _session!,
+                  onSessionChanged: _handleSessionChanged,
+                  onLogout: _handleLogout,
+                )
+              : BuyerHomePage(
+                  session: _session!,
+                  onSessionChanged: _handleSessionChanged,
+                  onLogout: _handleLogout,
+                ),
     );
   }
 }
