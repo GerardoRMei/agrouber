@@ -24,12 +24,71 @@ class ApiClient {
     );
   }
 
+  Future<Map<String, dynamic>> register({
+    required String role,
+    required String username,
+    required String email,
+    required String password,
+    required String firstName,
+    required String phone,
+    String? storeName,
+    String? contactPhone,
+    String? description,
+  }) async {
+    late final String path;
+    late final Map<String, dynamic> body;
+
+    if (role == 'customer') {
+      path = '/api/public-auth/register/customer';
+      body = {
+        'username': username,
+        'email': email,
+        'password': password,
+        'firstName': firstName,
+        'phone': phone,
+      };
+    } else if (role == 'seller') {
+      path = '/api/public-auth/register/seller';
+      body = {
+        'username': username,
+        'email': email,
+        'password': password,
+        'firstName': firstName,
+        'phone': phone,
+        'storeName': storeName ?? '',
+        'contactPhone': contactPhone ?? '',
+        'description': description ?? '',
+      };
+    } else {
+      throw const ApiException('Unsupported role for public registration.');
+    }
+
+    final response = await _httpClient.post(
+      _uri(path),
+      headers: _headers(),
+      body: jsonEncode(body),
+    );
+
+    final payload = _decodeBody(response.body);
+
+    if (response.statusCode >= 400) {
+      throw ApiException(
+        _extractErrorMessage(
+          payload,
+          fallback: 'No se pudo registrar el usuario.',
+        ),
+      );
+    }
+
+    return payload;
+  }
+
   Future<AuthSession> login({
     required String identifier,
     required String password,
   }) async {
     final response = await _httpClient.post(
-      _uri('/api/auth/local'),
+      _uri('/api/public-auth/login'),
       headers: _headers(),
       body: jsonEncode({
         'identifier': identifier,
@@ -41,7 +100,10 @@ class ApiClient {
 
     if (response.statusCode >= 400) {
       throw ApiException(
-        _extractErrorMessage(payload, fallback: 'No se pudo iniciar sesion.'),
+        _extractErrorMessage(
+          payload,
+          fallback: 'No se pudo iniciar sesión.',
+        ),
       );
     }
 
@@ -70,7 +132,10 @@ class ApiClient {
 
     if (response.statusCode >= 400) {
       throw ApiException(
-        _extractErrorMessage(payload, fallback: 'No se pudieron cargar los productos.'),
+        _extractErrorMessage(
+          payload,
+          fallback: 'No se pudieron cargar los productos.',
+        ),
       );
     }
 
@@ -85,8 +150,14 @@ class ApiClient {
       }
 
       final price = _asDouble(item['price']);
-      final category = _extractRelationName(item['category'], fallback: 'Sin categoria');
-      final sellerName = _extractRelationName(item['seller'], fallback: 'Sin vendedor');
+      final category = _extractRelationName(
+        item['category'],
+        fallback: 'Sin categoria',
+      );
+      final sellerName = _extractRelationName(
+        item['seller'],
+        fallback: 'Sin vendedor',
+      );
       final key = name.toLowerCase();
 
       final group = grouped.putIfAbsent(
@@ -104,7 +175,10 @@ class ApiClient {
 
     return grouped.values.map((group) {
       group.prices.sort();
-      final hasRange = group.prices.isNotEmpty && group.prices.first != group.prices.last;
+
+      final hasRange =
+          group.prices.isNotEmpty && group.prices.first != group.prices.last;
+
       final priceDisplay = group.prices.isEmpty
           ? 'Sin precio'
           : hasRange
@@ -142,14 +216,24 @@ class ApiClient {
     return decoded is Map<String, dynamic> ? decoded : <String, dynamic>{};
   }
 
-  String _extractErrorMessage(Map<String, dynamic> payload, {required String fallback}) {
+  String _extractErrorMessage(
+    Map<String, dynamic> payload, {
+    required String fallback,
+  }) {
     final error = payload['error'];
+
     if (error is Map<String, dynamic>) {
       final message = error['message'];
       if (message != null && message.toString().trim().isNotEmpty) {
         return message.toString();
       }
     }
+
+    final message = payload['message'];
+    if (message != null && message.toString().trim().isNotEmpty) {
+      return message.toString();
+    }
+
     return fallback;
   }
 
@@ -174,17 +258,33 @@ class ApiClient {
     final normalized = '$category $productName'.toLowerCase();
 
     if (normalized.contains('tomate')) return 'T';
-    if (normalized.contains('zanahoria') || normalized.contains('carrot')) return 'Z';
-    if (normalized.contains('cebolla') || normalized.contains('onion')) return 'C';
-    if (normalized.contains('brocoli') || normalized.contains('broccoli')) return 'B';
-    if (normalized.contains('lechuga') || normalized.contains('lettuce')) return 'L';
-    if (normalized.contains('platano') || normalized.contains('banana')) return 'P';
+    if (normalized.contains('zanahoria') || normalized.contains('carrot')) {
+      return 'Z';
+    }
+    if (normalized.contains('cebolla') || normalized.contains('onion')) {
+      return 'C';
+    }
+    if (normalized.contains('brocoli') || normalized.contains('broccoli')) {
+      return 'B';
+    }
+    if (normalized.contains('lechuga') || normalized.contains('lettuce')) {
+      return 'L';
+    }
+    if (normalized.contains('platano') || normalized.contains('banana')) {
+      return 'P';
+    }
     if (normalized.contains('mango')) return 'M';
-    if (normalized.contains('manzana') || normalized.contains('apple')) return 'A';
+    if (normalized.contains('manzana') || normalized.contains('apple')) {
+      return 'A';
+    }
     if (normalized.contains('pera') || normalized.contains('pear')) return 'R';
-    if (normalized.contains('fresa') || normalized.contains('strawberry')) return 'F';
+    if (normalized.contains('fresa') || normalized.contains('strawberry')) {
+      return 'F';
+    }
     if (normalized.contains('fruta')) return 'F';
-    if (normalized.contains('verdura') || normalized.contains('vegetal')) return 'V';
+    if (normalized.contains('verdura') || normalized.contains('vegetal')) {
+      return 'V';
+    }
 
     return '*';
   }
