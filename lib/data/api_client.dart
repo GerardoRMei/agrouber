@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
+import 'package:image_picker/image_picker.dart';
 
 import '../models/auth_session.dart';
 import '../models/marketplace_product.dart';
@@ -75,6 +76,16 @@ class ApiClient {
         payload,
         fallback: 'No se pudo registrar el usuario.',
       ),
+
+  Future<Map<String, dynamic>> postJson(
+    String path, {
+    required Map<String, dynamic> body,
+    String? authToken,
+  }) async {
+    final payload = await postDynamic(
+      path,
+      body: body,
+      authToken: authToken,
     );
   }
 
@@ -161,29 +172,177 @@ String _resolveDisplayName(
 
   Future<List<MarketplaceProduct>> fetchMarketplaceProducts({
     required String authToken,
+    return payload is Map<String, dynamic> ? payload : <String, dynamic>{};
+  }
+
+  Future<Map<String, dynamic>> getJson(
+    String path, {
+    Map<String, String>? queryParameters,
+    String? authToken,
+  }) async {
+    final payload = await getDynamic(
+      path,
+      queryParameters: queryParameters,
+      authToken: authToken,
+    );
+
+    return payload is Map<String, dynamic> ? payload : <String, dynamic>{};
+  }
+
+  Future<dynamic> postDynamic(
+    String path, {
+    required Map<String, dynamic> body,
+    String? authToken,
+  }) async {
+    final response = await _httpClient.post(
+      _uri(path),
+      headers: _headers(authToken: authToken),
+      body: jsonEncode(body),
+    );
+
+    return _handleDynamicResponse(response);
+  }
+
+  Future<dynamic> getDynamic(
+    String path, {
+    Map<String, String>? queryParameters,
+    String? authToken,
   }) async {
     final response = await _httpClient.get(
-      _uri(
-        '/api/products',
-        {
-          'filters[isActive][\$eq]': 'true',
-          'populate[0]': 'category',
-          'populate[1]': 'seller',
-          'sort': 'name:asc',
-          'pagination[page]': '1',
-          'pagination[pageSize]': '100',
-        },
-      ),
+      _uri(path, queryParameters),
       headers: _headers(authToken: authToken),
     );
 
-    final payload = _decodeBody(response.body);
+    return _handleDynamicResponse(response);
+  }
 
-    if (response.statusCode >= 400) {
-      throw ApiException(
-        _extractErrorMessage(payload, fallback: 'No se pudieron cargar los productos.'),
+  Future<Map<String, dynamic>> patchJson(
+    String path, {
+    required Map<String, dynamic> body,
+    String? authToken,
+  }) async {
+    final payload = await patchDynamic(
+      path,
+      body: body,
+      authToken: authToken,
+    );
+
+    return payload is Map<String, dynamic> ? payload : <String, dynamic>{};
+  }
+
+  Future<Map<String, dynamic>> putJson(
+    String path, {
+    required Map<String, dynamic> body,
+    String? authToken,
+  }) async {
+    final payload = await putDynamic(
+      path,
+      body: body,
+      authToken: authToken,
+    );
+
+    return payload is Map<String, dynamic> ? payload : <String, dynamic>{};
+  }
+
+  Future<dynamic> patchDynamic(
+    String path, {
+    required Map<String, dynamic> body,
+    String? authToken,
+  }) async {
+    final response = await _httpClient.patch(
+      _uri(path),
+      headers: _headers(authToken: authToken),
+      body: jsonEncode(body),
+    );
+
+    return _handleDynamicResponse(response);
+  }
+
+  Future<dynamic> putDynamic(
+    String path, {
+    required Map<String, dynamic> body,
+    String? authToken,
+  }) async {
+    final response = await _httpClient.put(
+      _uri(path),
+      headers: _headers(authToken: authToken),
+      body: jsonEncode(body),
+    );
+
+    return _handleDynamicResponse(response);
+  }
+
+  Future<List<Map<String, dynamic>>> uploadFiles(
+    String path, {
+    required List<XFile> files,
+    String fieldName = 'files',
+    String? authToken,
+  }) async {
+    final request = http.MultipartRequest('POST', _uri(path));
+
+    if (authToken != null && authToken.trim().isNotEmpty) {
+      request.headers['Authorization'] = 'Bearer $authToken';
+    }
+
+    for (final file in files) {
+      final bytes = await file.readAsBytes();
+      request.files.add(
+        http.MultipartFile.fromBytes(
+          fieldName,
+          bytes,
+          filename: file.name,
+        ),
       );
     }
+
+    final streamed = await request.send();
+    final response = await http.Response.fromStream(streamed);
+    final payload = _handleDynamicResponse(response);
+
+    if (payload is List<dynamic>) {
+      return payload.whereType<Map<String, dynamic>>().toList();
+    }
+
+    if (payload is Map<String, dynamic>) {
+      final data = payload['data'];
+      if (data is List<dynamic>) {
+        return data.whereType<Map<String, dynamic>>().toList();
+      }
+    }
+
+    return <Map<String, dynamic>>[];
+  }
+
+  Future<AuthSession> login({
+    required String identifier,
+    required String password,
+  }) async {
+    final payload = await postJson(
+      '/api/auth/local',
+      body: {
+        'identifier': identifier,
+        'password': password,
+      },
+    );
+
+    return AuthSession.fromJson(payload);
+  }
+
+  Future<List<MarketplaceProduct>> fetchMarketplaceProducts({
+    required String authToken,
+  }) async {
+    final payload = await getJson(
+      '/api/products',
+      authToken: authToken,
+      queryParameters: const {
+        'filters[isActive][\$eq]': 'true',
+        'populate[0]': 'category',
+        'populate[1]': 'seller',
+        'sort': 'name:asc',
+        'pagination[page]': '1',
+        'pagination[pageSize]': '100',
+      },
+    );
 
     final items = (payload['data'] as List<dynamic>? ?? <dynamic>[])
         .whereType<Map<String, dynamic>>();
@@ -223,6 +382,7 @@ String _resolveDisplayName(
               : '\$${group.prices.first.toStringAsFixed(0)}';
 
       return MarketplaceProduct(
+        unitPrice: group.prices.isEmpty ? 0 : group.prices.first,
         name: group.name,
         categoryName: group.categoryName,
         priceDisplay: priceDisplay,
@@ -244,16 +404,31 @@ String _resolveDisplayName(
     return headers;
   }
 
-  Map<String, dynamic> _decodeBody(String body) {
+  dynamic _decodeBody(String body) {
     if (body.trim().isEmpty) {
       return <String, dynamic>{};
     }
 
-    final decoded = jsonDecode(body);
-    return decoded is Map<String, dynamic> ? decoded : <String, dynamic>{};
+    return jsonDecode(body);
   }
 
-  String _extractErrorMessage(Map<String, dynamic> payload, {required String fallback}) {
+  dynamic _handleDynamicResponse(http.Response response) {
+    final payload = _decodeBody(response.body);
+
+    if (response.statusCode >= 400) {
+      throw ApiException(
+        _extractErrorMessage(payload, fallback: 'La solicitud no pudo completarse.'),
+      );
+    }
+
+    return payload;
+  }
+
+  String _extractErrorMessage(dynamic payload, {required String fallback}) {
+    if (payload is! Map<String, dynamic>) {
+      return fallback;
+    }
+
     final error = payload['error'];
     if (error is Map<String, dynamic>) {
       final message = error['message'];
@@ -298,6 +473,25 @@ String _resolveDisplayName(
     if (normalized.contains('verdura') || normalized.contains('vegetal')) return 'V';
 
     return '*';
+  }
+
+  String resolveMediaUrl(String rawUrl) {
+    final normalized = rawUrl.trim();
+    if (normalized.isEmpty) {
+      return normalized;
+    }
+
+    if (normalized.startsWith('http://') || normalized.startsWith('https://')) {
+      return normalized;
+    }
+
+    final base = Uri.parse(apiBaseUrl);
+    final origin = Uri(
+      scheme: base.scheme,
+      host: base.host,
+      port: base.hasPort ? base.port : null,
+    );
+    return origin.resolve(normalized).toString();
   }
 }
 

@@ -1,36 +1,61 @@
 import 'package:flutter/material.dart';
 
+import '../data/api_client.dart';
+import '../shared/theme/agrorun_theme.dart';
+import '../shared/widgets/agrorun_wordmark.dart';
+
 class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
-  const HomeAppBar({super.key});
+  const HomeAppBar({
+    super.key,
+    this.cartCount = 0,
+    this.onCartTap,
+    this.onProfileTap,
+    this.profileImageUrl,
+  });
+
+  final int cartCount;
+  final VoidCallback? onCartTap;
+  final VoidCallback? onProfileTap;
+  final String? profileImageUrl;
 
   @override
   Widget build(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+    final isMobile = width < 700;
+
     return AppBar(
-      backgroundColor: const Color(0xFF1F1209),
+      backgroundColor: Colors.white,
       elevation: 0,
       centerTitle: false,
-      title: const Padding(
-        padding: EdgeInsets.only(left: 48.0),
-        child: Text(
-          'Agrouber',
-          style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.w800,
-            color: Colors.white,
-          ),
-        ),
+      titleSpacing: isMobile ? 12 : 24,
+      title: Padding(
+        padding: EdgeInsets.only(left: isMobile ? 0 : 24),
+        child: const AgrorunWordmark(compact: true),
       ),
       actions: [
         IconButton(
-          icon: const Icon(Icons.home_rounded, color: Colors.white),
+          icon: const Icon(Icons.home_rounded, color: AgrorunPalette.forest),
           onPressed: () {},
         ),
-        const _CartAction(count: '3'),
+        _CartAction(
+          count: cartCount,
+          onTap: onCartTap,
+        ),
         Padding(
-          padding: const EdgeInsets.only(right: 64.0),
+          padding: EdgeInsets.only(right: isMobile ? 8 : 24),
           child: IconButton(
-            icon: const Icon(Icons.person_outline, color: Colors.white),
-            onPressed: () {},
+            icon: profileImageUrl?.trim().isNotEmpty == true
+                ? CircleAvatar(
+                    radius: 15,
+                    backgroundImage: NetworkImage(
+                      ApiClient().resolveMediaUrl(profileImageUrl!),
+                    ),
+                  )
+                : const Icon(
+                    Icons.person_outline,
+                    color: AgrorunPalette.forest,
+                  ),
+            onPressed: onProfileTap,
           ),
         ),
       ],
@@ -42,30 +67,36 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
 }
 
 class _CartAction extends StatelessWidget {
-  final String count;
-  const _CartAction({required this.count});
+  final int count;
+  final VoidCallback? onTap;
+
+  const _CartAction({
+    required this.count,
+    this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
     return IconButton(
       icon: Stack(
         children: [
-          const Icon(Icons.shopping_cart_outlined, color: Colors.white),
-          Positioned(
-            right: 0,
-            top: 0,
-            child: CircleAvatar(
-              radius: 7,
-              backgroundColor: const Color(0xFFE09A2C),
-              child: Text(
-                count,
-                style: const TextStyle(fontSize: 9, color: Colors.white),
+          const Icon(Icons.shopping_cart_outlined, color: AgrorunPalette.forest),
+          if (count > 0)
+            Positioned(
+              right: 0,
+              top: 0,
+              child: CircleAvatar(
+                radius: 8,
+                backgroundColor: AgrorunPalette.orange,
+                child: Text(
+                  '$count',
+                  style: const TextStyle(fontSize: 9, color: Colors.white),
+                ),
               ),
             ),
-          )
         ],
       ),
-      onPressed: () {},
+      onPressed: onTap,
     );
   }
 }

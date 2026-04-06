@@ -1,18 +1,26 @@
 import 'package:flutter/material.dart';
 
-class MarketProductCard extends StatelessWidget {
-  final String imageUrl;
-  final String productName;
-  final String priceDisplay;
-  final int sellerCount;
+import '../shared/theme/agrorun_theme.dart';
 
+class MarketProductCard extends StatelessWidget {
   const MarketProductCard({
     super.key,
     required this.imageUrl,
     required this.productName,
     required this.priceDisplay,
     required this.sellerCount,
+    required this.categoryName,
+    required this.onAddToCart,
+    required this.quantityInCart,
   });
+
+  final String imageUrl;
+  final String productName;
+  final String priceDisplay;
+  final int sellerCount;
+  final String categoryName;
+  final VoidCallback onAddToCart;
+  final int quantityInCart;
 
   @override
   Widget build(BuildContext context) {
@@ -22,9 +30,9 @@ class MarketProductCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 18,
+            offset: const Offset(0, 10),
           ),
         ],
       ),
@@ -36,19 +44,49 @@ class MarketProductCard extends StatelessWidget {
             child: Container(
               width: double.infinity,
               decoration: const BoxDecoration(
-                color: Color(0xFFF3F0EA),
+                gradient: LinearGradient(
+                  colors: [
+                    AgrorunPalette.cream,
+                    AgrorunPalette.creamStrong,
+                  ],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
                 borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
               ),
-              child: Center(
-                child: Text(
-                  imageUrl, // Usando el sistema de emojis, cambiar cuando se usen imgs de verdad
-                  style: const TextStyle(fontSize: 50),
-                ),
+              child: Stack(
+                children: [
+                  Positioned(
+                    top: 16,
+                    left: 16,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.95),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(
+                        categoryName,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: AgrorunPalette.forest,
+                        ),
+                      ),
+                    ),
+                  ),
+                  Center(
+                    child: Text(
+                      imageUrl,
+                      style: const TextStyle(fontSize: 54),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
           Expanded(
-            flex: 4,
+            flex: 5,
             child: Padding(
               padding: const EdgeInsets.all(16.0),
               child: Column(
@@ -59,34 +97,49 @@ class MarketProductCard extends StatelessWidget {
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF1F1209),
+                      color: AgrorunPalette.textPrimary,
                     ),
-                    maxLines: 1,
+                    maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 8),
                   Text(
                     priceDisplay,
                     style: const TextStyle(
-                      fontSize: 16,
+                      fontSize: 18,
                       fontWeight: FontWeight.w800,
-                      color: Color(0xFF4A7A4D),
+                      color: AgrorunPalette.forest,
                     ),
                   ),
-                  const Spacer(),
+                  const SizedBox(height: 8),
                   Row(
                     children: [
-                      const Icon(Icons.storefront, size: 16, color: Colors.grey),
-                      const SizedBox(width: 4),
+                      const Icon(
+                        Icons.storefront_outlined,
+                        size: 16,
+                        color: AgrorunPalette.textMuted,
+                      ),
+                      const SizedBox(width: 6),
                       Text(
-                        '$sellerCount vendedores',
+                        sellerCount == 1 ? '1 vendedor disponible' : '$sellerCount vendedores disponibles',
                         style: const TextStyle(
                           fontSize: 12,
-                          color: Colors.grey,
-                          fontWeight: FontWeight.w500,
+                          color: AgrorunPalette.textMuted,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ],
+                  ),
+                  const Spacer(),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton.icon(
+                      onPressed: onAddToCart,
+                      icon: Icon(quantityInCart > 0 ? Icons.add_shopping_cart : Icons.shopping_cart_checkout),
+                      label: Text(
+                        quantityInCart > 0 ? 'Agregar otra vez ($quantityInCart)' : 'Agregar al carrito',
+                      ),
+                    ),
                   ),
                 ],
               ),
