@@ -11,7 +11,7 @@ class SidebarNav extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Campo', style: TextStyle(fontSize: 30, fontWeight: FontWeight.w800, color: Colors.white)),
+          const Text('Agrorun', style: TextStyle(fontSize: 30, fontWeight: FontWeight.w800, color: Colors.white)),
           const SizedBox(height: 32),
           _SectionTitle('SHOP'),
           const _NavTile(icon: Icons.home_rounded, label: 'Home', isSelected: true),
