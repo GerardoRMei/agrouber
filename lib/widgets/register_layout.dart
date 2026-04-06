@@ -10,14 +10,17 @@ class DesktopRegisterLayout extends StatelessWidget {
   Widget build(BuildContext context) {
     return IntrinsicHeight(
       child: Row(
-        children: const [
+        children: [
           Expanded(
             flex: 5,
             child: RegisterHeroSection(),
           ),
           Expanded(
             flex: 6,
-            child: RegisterFormSection(),
+            child: RegisterFormSection(
+              isMobile: false,
+              onBackToLogin: () {Navigator.of(context).pop();},
+            ),
           ),
         ],
       ),
@@ -31,9 +34,9 @@ class MobileRegisterLayout extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
-      children: const [
+      children: [
         RegisterHeroSection(isMobile: true),
-        RegisterFormSection(isMobile: true),
+        RegisterFormSection(isMobile: true, onBackToLogin: () {Navigator.of(context).pop();},),
       ],
     );
   }

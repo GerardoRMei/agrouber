@@ -23,30 +23,141 @@ class ApiClient {
       queryParameters: queryParameters,
     );
   }
-
-  Future<AuthSession> login({
-    required String identifier,
+  Future<Map<String, dynamic>> register({
+    required String role,
+    required String username,
+    required String email,
     required String password,
+    required String firstName,
+    required String phone,
+    String? storeName,
+    String? contactPhone,
+    String? description,
   }) async {
-    final response = await _httpClient.post(
-      _uri('/api/auth/local'),
-      headers: _headers(),
-      body: jsonEncode({
-        'identifier': identifier,
+    late final String path;
+    late final Map<String, dynamic> body;
+
+    if (role == 'customer') {
+      path = '/api/public-auth/register/customer';
+      body = {
+        'username': username,
+        'email': email,
         'password': password,
-      }),
-    );
-
-    final payload = _decodeBody(response.body);
-
-    if (response.statusCode >= 400) {
-      throw ApiException(
-        _extractErrorMessage(payload, fallback: 'No se pudo iniciar sesion.'),
-      );
+        'firstName': firstName,
+        'phone': phone,
+      };
+    } else if (role == 'seller') {
+      path = '/api/public-auth/register/seller';
+      body = {
+        'username': username,
+        'email': email,
+        'password': password,
+        'firstName': firstName,
+        'phone': phone,
+        'storeName': storeName ?? '',
+        'contactPhone': contactPhone ?? '',
+        'description': description ?? '',
+      };
+    } else {
+      throw const ApiException('Unsupported role for public registration.');
     }
+  final response = await _httpClient.post(
+    _uri(path),
+    headers: _headers(),
+    body: jsonEncode(body),
+  );
 
-    return AuthSession.fromJson(payload);
+  final payload = _decodeBody(response.body);
+
+  if (response.statusCode >= 400) {
+    throw ApiException(
+      _extractErrorMessage(
+        payload,
+        fallback: 'No se pudo registrar el usuario.',
+      ),
+    );
   }
+
+  return payload;
+}
+
+ Future<AuthSession> login({
+  required String identifier,
+  required String password,
+}) async {
+  final response = await _httpClient.post(
+    _uri('/api/public-auth/login'),
+    headers: _headers(),
+    body: jsonEncode({
+      'identifier': identifier,
+      'password': password,
+    }),
+  );
+
+  final payload = _decodeBody(response.body);
+
+  if (response.statusCode >= 400) {
+    throw ApiException(
+      _extractErrorMessage(
+        payload,
+        fallback: 'No se pudo iniciar sesión.',
+      ),
+    );
+  }
+
+  return AuthSession.fromJson(payload);
+}
+
+String _resolveUserRole(Map<String, dynamic> mePayload) {
+  final role = mePayload['role'];
+
+  if (role is Map<String, dynamic>) {
+    final candidates = <dynamic>[
+      role['type'],
+      role['name'],
+      role['code'],
+    ];
+
+    for (final candidate in candidates) {
+      final value = candidate?.toString().trim().toLowerCase() ?? '';
+      if (value.isNotEmpty) {
+        if (value.contains('delivery')) return 'delivery';
+        if (value.contains('seller')) return 'seller';
+        if (value.contains('customer')) return 'customer';
+        if (value.contains('operations')) return 'operations';
+      }
+    }
+  }
+
+  final seller = mePayload['seller'];
+  if (seller is Map<String, dynamic> && seller.isNotEmpty) {
+    return 'seller';
+  }
+
+  return 'customer';
+}
+
+String _resolveDisplayName(
+  Map<String, dynamic> loginUser,
+  Map<String, dynamic> mePayload,
+) {
+  final candidates = <dynamic>[
+    mePayload['firstName'],
+    loginUser['firstName'],
+    loginUser['username'],
+    mePayload['username'],
+    loginUser['email'],
+  ];
+
+  for (final candidate in candidates) {
+    final text = candidate?.toString().trim() ?? '';
+    if (text.isNotEmpty) {
+      return text;
+    }
+  }
+
+  return 'Usuario';
+}
 
   Future<List<MarketplaceProduct>> fetchMarketplaceProducts({
     required String authToken,
