@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import '../models/cart_state.dart'; // Importa el estado
 
 class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
-  const HomeAppBar({super.key});
+  final CartState cartState; // Recibimos el estado del carrito
+
+  const HomeAppBar({super.key, required this.cartState});
 
   @override
   Widget build(BuildContext context) {
@@ -13,11 +16,7 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
         padding: EdgeInsets.only(left: 48.0),
         child: Text(
           'Agrouber',
-          style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.w800,
-            color: Colors.white,
-          ),
+          style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: Colors.white),
         ),
       ),
       actions: [
@@ -25,7 +24,7 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
           icon: const Icon(Icons.home_rounded, color: Colors.white),
           onPressed: () {},
         ),
-        const _CartAction(count: '3'),
+        _CartAction(cartState: cartState),
         Padding(
           padding: const EdgeInsets.only(right: 64.0),
           child: IconButton(
@@ -42,30 +41,41 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
 }
 
 class _CartAction extends StatelessWidget {
-  final String count;
-  const _CartAction({required this.count});
+  final CartState cartState;
+  
+  const _CartAction({required this.cartState});
 
   @override
   Widget build(BuildContext context) {
     return IconButton(
       icon: Stack(
+        clipBehavior: Clip.none,
         children: [
           const Icon(Icons.shopping_cart_outlined, color: Colors.white),
           Positioned(
-            right: 0,
-            top: 0,
-            child: CircleAvatar(
-              radius: 7,
-              backgroundColor: const Color(0xFFE09A2C),
-              child: Text(
-                count,
-                style: const TextStyle(fontSize: 9, color: Colors.white),
-              ),
+            right: -4,
+            top: -4,
+            child: ListenableBuilder(
+              listenable: cartState,
+              builder: (context, child) {
+                if (cartState.totalItems == 0) return const SizedBox.shrink();
+                
+                return CircleAvatar(
+                  radius: 8,
+                  backgroundColor: const Color(0xFFE09A2C),
+                  child: Text(
+                    '${cartState.totalItems}',
+                    style: const TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.bold),
+                  ),
+                );
+              },
             ),
           )
         ],
       ),
-      onPressed: () {},
+      onPressed: () {
+        print("Productos en carrito: ${cartState.totalItems}");
+      },
     );
   }
 }

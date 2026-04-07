@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../data/api_client.dart';
 import '../models/auth_session.dart';
+import '../models/cart_state.dart';
 import '../models/marketplace_product.dart';
 import '../widgets/home_app_bar.dart';
 import '../widgets/market_product_card.dart';
@@ -21,6 +22,7 @@ class BuyerHomePage extends StatefulWidget {
 
 class _BuyerHomePageState extends State<BuyerHomePage> {
   final ApiClient _apiClient = ApiClient();
+  final CartState _cartState = CartState();
   final TextEditingController _searchController = TextEditingController();
 
   List<MarketplaceProduct> _displayProducts = <MarketplaceProduct>[];
@@ -105,7 +107,7 @@ class _BuyerHomePageState extends State<BuyerHomePage> {
     }).toList();
 
     return Scaffold(
-      appBar: const HomeAppBar(),
+      appBar: HomeAppBar(cartState: _cartState),
       body: LayoutBuilder(
         builder: (context, constraints) {
           final bool isMobile = constraints.maxWidth < 600;
@@ -217,6 +219,7 @@ class _BuyerHomePageState extends State<BuyerHomePage> {
           priceDisplay: product.priceDisplay,
           sellerCount: product.sellerCount,
           onAddToCart: () {
+            _cartState.addProduct(product);
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text('${product.name} agregado al carrito'),

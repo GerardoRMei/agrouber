@@ -86,7 +86,7 @@ class MarketProductCard extends StatelessWidget {
                             const SizedBox(width: 4),
                             Expanded(
                               child: Text(
-                                '$sellerCount vend.', // Texto acortado
+                                '$sellerCount vend.',
                                 style: const TextStyle(
                                   fontSize: 12,
                                   color: Colors.grey,
