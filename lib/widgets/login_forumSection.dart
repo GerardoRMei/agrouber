@@ -137,7 +137,7 @@ class _FormSectionState extends State<FormSection> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Log In',
+            'Iniciar sesión',
             style: TextStyle(
               fontSize: widget.isMobile ? 30 : 40,
               fontWeight: FontWeight.w800,
@@ -146,7 +146,7 @@ class _FormSectionState extends State<FormSection> {
           ),
           const SizedBox(height: 6),
           const Text(
-            'Enter your credentials to continue',
+            'Ingresa tus credenciales para continuar',
             style: TextStyle(
               fontSize: 14,
               color: Color(0xFF8F877C),
@@ -171,7 +171,7 @@ class _FormSectionState extends State<FormSection> {
           ),
           const SizedBox(height: 20),
           const Text(
-            'PASSWORD',
+            'CONTRASEÑA',
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w700,
@@ -226,7 +226,7 @@ class _FormSectionState extends State<FormSection> {
                       ),
                     )
                   : const Text(
-                      'Sign In ->',
+                      'Iniciar sesión',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
@@ -255,9 +255,9 @@ class _FormSectionState extends State<FormSection> {
                     fontSize: 14,
                   ),
                   children: [
-                    TextSpan(text: "Don't have an account? "),
+                    TextSpan(text: "¿No tienes una cuenta? "),
                     TextSpan(
-                      text: 'Create one',
+                      text: 'Crea una aquí',
                       style: TextStyle(
                         color: Color(0xFF2A1B10),
                         fontWeight: FontWeight.w800,

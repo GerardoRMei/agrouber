@@ -68,7 +68,7 @@ class RegisterHeroSection extends StatelessWidget {
                       border: Border.all(color: const Color(0xFF6F685E)),
                     ),
                     child: const Text(
-                      'APP NAME',
+                      'AgroRun',
                       style: TextStyle(
                         color: Color(0xFFE5DED2),
                         fontSize: 11,
@@ -81,7 +81,7 @@ class RegisterHeroSection extends StatelessWidget {
               ),
               SizedBox(height: isMobile ? 24 : 42),
               Text(
-                'Join the\nmovement',
+                'Únete al\nmovimiento',
                 style: GoogleFonts.dmSerifDisplay(
                   fontSize: isMobile ? 34 : 52,
                   height: 0.98,
@@ -91,7 +91,7 @@ class RegisterHeroSection extends StatelessWidget {
               const SizedBox(height: 16),
               ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 420),
-                child: Text('Create your account and start buying fresh produce directly from local farmers.',
+                child: Text('Crea tu cuenta y comienza a comprar productos frescos directamente de productores locales.',
                   style: TextStyle(
                     fontSize: isMobile ? 13 : 16,
                     height: 1.6,

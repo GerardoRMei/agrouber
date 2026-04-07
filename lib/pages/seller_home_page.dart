@@ -33,54 +33,67 @@ class _SellerHomePageState extends State<SellerHomePage> {
   }
 
   Future<void> _loadSellerData() async {
+  setState(() {
+    _isLoading = true;
+    _errorMessage = null;
+  });
+
+  try {
+    final me = await _sellerApiService.fetchSellerStatus(widget.session);
+    final dashboard =
+        await _sellerApiService.fetchSellerDashboard(widget.session);
+    final warehouse =
+        await _sellerApiService.fetchWarehouseAssignment(widget.session);
+    final productsCount =
+        await _sellerApiService.fetchMyProductsCount(widget.session);
+
+    final effectiveStatus =
+        dashboard.status != SellerStatus.none ? dashboard.status : me.status;
+
+    final merged = dashboard.copyWith(
+      id: me.id,
+      documentId: me.documentId,
+      storeName: me.storeName.isNotEmpty ? me.storeName : dashboard.storeName,
+      description: me.description,
+      contactPhone: me.contactPhone,
+      isVerified: me.isVerified,
+      address: me.address,
+      status: effectiveStatus,
+      productCount: dashboard.productCount ?? me.productCount ?? productsCount,
+      assignedWarehouse: warehouse.assignedWarehouse ?? me.assignedWarehouse,
+      warehouseAssignmentStatus:
+          warehouse.warehouseAssignmentStatus != WarehouseAssignmentStatus.none
+              ? warehouse.warehouseAssignmentStatus
+              : me.warehouseAssignmentStatus,
+      deliveryInstructions:
+          warehouse.deliveryInstructions ??
+          me.deliveryInstructions ??
+          dashboard.deliveryInstructions,
+      canCreateProducts:
+          dashboard.canCreateProducts ?? (effectiveStatus == SellerStatus.approved),
+      canDeliverToWarehouse:
+          dashboard.canDeliverToWarehouse ?? false,
+      canEditProfile:
+          dashboard.canEditProfile ?? true,
+    );
+
+    if (!mounted) return;
+
     setState(() {
-      _isLoading = true;
-      _errorMessage = null;
+      _profile = merged;
+      _statusHint = merged.deliveryInstructions ??
+          'Actualizamos la informacion mas reciente de tu cuenta.';
+      _isLoading = false;
     });
+  } catch (error) {
+    if (!mounted) return;
 
-    try {
-      final results = await Future.wait<SellerProfile>([
-        _sellerApiService.fetchSellerStatus(widget.session),
-        _sellerApiService.fetchSellerDashboard(widget.session),
-        _sellerApiService.fetchWarehouseAssignment(widget.session),
-      ]);
-      final productsCount =
-          await _sellerApiService.fetchMyProductsCount(widget.session);
-
-      final merged = results[0]
-          .copyWith(
-            productCount: results[1].productCount ?? productsCount,
-            canCreateProducts: results[1].canCreateProducts,
-            canDeliverToWarehouse: results[1].canDeliverToWarehouse,
-            canEditProfile: results[1].canEditProfile,
-          )
-          .copyWith(
-            assignedWarehouse: results[2].assignedWarehouse,
-            warehouseAssignmentStatus: results[2].warehouseAssignmentStatus,
-            deliveryInstructions: results[2].deliveryInstructions,
-          );
-
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _profile = merged;
-        _statusHint = merged.deliveryInstructions ??
-            'Actualizamos la informacion mas reciente de tu cuenta.';
-        _isLoading = false;
-      });
-    } catch (error) {
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _errorMessage = error.toString();
-        _isLoading = false;
-      });
-    }
+    setState(() {
+      _errorMessage = error.toString();
+      _isLoading = false;
+    });
   }
+}
 
   Future<void> _openProducts() async {
     await Navigator.of(context).push(

@@ -194,10 +194,7 @@ class _SellerProductFormPageState extends State<SellerProductFormPage> {
                               ),
                             ),
                             const SizedBox(height: 8),
-                            const Text(
-                              'Version adaptada a tu estructura actual. Esta forma usa el endpoint /api/sellers/products y no depende de la refactorizacion por features.',
-                              style: TextStyle(height: 1.5, color: Color(0xFF6B6B6B)),
-                            ),
+                            
                             if (_errorMessage != null) ...[
                               const SizedBox(height: 16),
                               Text(

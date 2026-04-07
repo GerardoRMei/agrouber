@@ -189,7 +189,7 @@ class RegisterSubmitButton extends StatelessWidget {
           ),
         ),
         child: Text(
-          'Create Account →',
+          'Crea tu cuenta →',
           style: GoogleFonts.inter(
             fontSize: compact ? 16 : 18,
             fontWeight: FontWeight.w800,
