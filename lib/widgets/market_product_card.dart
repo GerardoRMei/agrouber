@@ -5,6 +5,7 @@ class MarketProductCard extends StatelessWidget {
   final String productName;
   final String priceDisplay;
   final int sellerCount;
+  final VoidCallback? onAddToCart;
 
   const MarketProductCard({
     super.key,
@@ -12,6 +13,7 @@ class MarketProductCard extends StatelessWidget {
     required this.productName,
     required this.priceDisplay,
     required this.sellerCount,
+    this.onAddToCart,
   });
 
   @override
@@ -41,14 +43,14 @@ class MarketProductCard extends StatelessWidget {
               ),
               child: Center(
                 child: Text(
-                  imageUrl, // Usando el sistema de emojis, cambiar cuando se usen imgs de verdad
+                  imageUrl,
                   style: const TextStyle(fontSize: 50),
                 ),
               ),
             ),
           ),
           Expanded(
-            flex: 4,
+            flex: 5,
             child: Padding(
               padding: const EdgeInsets.all(16.0),
               child: Column(
@@ -75,15 +77,43 @@ class MarketProductCard extends StatelessWidget {
                   ),
                   const Spacer(),
                   Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Icon(Icons.storefront, size: 16, color: Colors.grey),
-                      const SizedBox(width: 4),
-                      Text(
-                        '$sellerCount vendedores',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey,
-                          fontWeight: FontWeight.w500,
+                      Expanded(
+                        child: Row(
+                          children: [
+                            const Icon(Icons.storefront, size: 16, color: Colors.grey),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: Text(
+                                '$sellerCount vend.', // Texto acortado
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      InkWell(
+                        onTap: onAddToCart,
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF2E4F2F),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(
+                            Icons.add_shopping_cart,
+                            color: Colors.white,
+                            size: 18,
+                          ),
                         ),
                       ),
                     ],
