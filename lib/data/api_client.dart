@@ -2,12 +2,14 @@ import 'dart:convert';
 
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
+//import 'package:image_picker/image_picker.dart';
 
 import '../models/auth_session.dart';
 import '../models/marketplace_product.dart';
 
 class ApiClient {
-  ApiClient({http.Client? httpClient}) : _httpClient = httpClient ?? http.Client();
+  ApiClient({http.Client? httpClient})
+      : _httpClient = httpClient ?? http.Client();
 
   final http.Client _httpClient;
 
@@ -80,9 +82,11 @@ class ApiClient {
       );
     }
 
-    return payload;
+    return payload is Map<String, dynamic> ? payload : <String, dynamic>{};
   }
 
+  /// Se conserva el endpoint custom actual porque lo usan para resolver
+  /// el rol y redirigir a la pantalla correcta después del login.
   Future<AuthSession> login({
     required String identifier,
     required String password,
@@ -107,40 +111,34 @@ class ApiClient {
       );
     }
 
+    if (payload is! Map<String, dynamic>) {
+      throw const ApiException('Respuesta inválida del servidor.');
+    }
+
     return AuthSession.fromJson(payload);
   }
 
+  /// Se conserva la versión actual para no romper BuyerHomePage ni
+  /// el modelo MarketplaceProduct que ya están funcionando.
   Future<List<MarketplaceProduct>> fetchMarketplaceProducts({
     required String authToken,
   }) async {
-    final response = await _httpClient.get(
-      _uri(
-        '/api/products',
-        {
-          'filters[isActive][\$eq]': 'true',
-          'populate[0]': 'category',
-          'populate[1]': 'seller',
-          'sort': 'name:asc',
-          'pagination[page]': '1',
-          'pagination[pageSize]': '100',
-        },
-      ),
-      headers: _headers(authToken: authToken),
+    final payload = await getJson(
+      '/api/products',
+      authToken: authToken,
+      queryParameters: const {
+        'filters[isActive][\$eq]': 'true',
+        'populate[0]': 'category',
+        'populate[1]': 'seller',
+        'sort': 'name:asc',
+        'pagination[page]': '1',
+        'pagination[pageSize]': '100',
+      },
     );
-
-    final payload = _decodeBody(response.body);
-
-    if (response.statusCode >= 400) {
-      throw ApiException(
-        _extractErrorMessage(
-          payload,
-          fallback: 'No se pudieron cargar los productos.',
-        ),
-      );
-    }
 
     final items = (payload['data'] as List<dynamic>? ?? <dynamic>[])
         .whereType<Map<String, dynamic>>();
+
     final grouped = <String, _GroupedProduct>{};
 
     for (final item in items) {
@@ -195,6 +193,180 @@ class ApiClient {
     }).toList();
   }
 
+  Future<Map<String, dynamic>> getJson(
+    String path, {
+    Map<String, String>? queryParameters,
+    String? authToken,
+  }) async {
+    final payload = await getDynamic(
+      path,
+      queryParameters: queryParameters,
+      authToken: authToken,
+    );
+
+    return payload is Map<String, dynamic> ? payload : <String, dynamic>{};
+  }
+
+  Future<Map<String, dynamic>> postJson(
+    String path, {
+    required Map<String, dynamic> body,
+    String? authToken,
+  }) async {
+    final payload = await postDynamic(
+      path,
+      body: body,
+      authToken: authToken,
+    );
+
+    return payload is Map<String, dynamic> ? payload : <String, dynamic>{};
+  }
+
+  Future<Map<String, dynamic>> patchJson(
+    String path, {
+    required Map<String, dynamic> body,
+    String? authToken,
+  }) async {
+    final payload = await patchDynamic(
+      path,
+      body: body,
+      authToken: authToken,
+    );
+
+    return payload is Map<String, dynamic> ? payload : <String, dynamic>{};
+  }
+
+  Future<Map<String, dynamic>> putJson(
+    String path, {
+    required Map<String, dynamic> body,
+    String? authToken,
+  }) async {
+    final payload = await putDynamic(
+      path,
+      body: body,
+      authToken: authToken,
+    );
+
+    return payload is Map<String, dynamic> ? payload : <String, dynamic>{};
+  }
+
+  Future<dynamic> getDynamic(
+    String path, {
+    Map<String, String>? queryParameters,
+    String? authToken,
+  }) async {
+    final response = await _httpClient.get(
+      _uri(path, queryParameters),
+      headers: _headers(authToken: authToken),
+    );
+
+    return _handleDynamicResponse(response);
+  }
+
+  Future<dynamic> postDynamic(
+    String path, {
+    required Map<String, dynamic> body,
+    String? authToken,
+  }) async {
+    final response = await _httpClient.post(
+      _uri(path),
+      headers: _headers(authToken: authToken),
+      body: jsonEncode(body),
+    );
+
+    return _handleDynamicResponse(response);
+  }
+
+  Future<dynamic> patchDynamic(
+    String path, {
+    required Map<String, dynamic> body,
+    String? authToken,
+  }) async {
+    final response = await _httpClient.patch(
+      _uri(path),
+      headers: _headers(authToken: authToken),
+      body: jsonEncode(body),
+    );
+
+    return _handleDynamicResponse(response);
+  }
+
+  Future<dynamic> putDynamic(
+    String path, {
+    required Map<String, dynamic> body,
+    String? authToken,
+  }) async {
+    final response = await _httpClient.put(
+      _uri(path),
+      headers: _headers(authToken: authToken),
+      body: jsonEncode(body),
+    );
+
+    return _handleDynamicResponse(response);
+  }
+
+/*
+  Future<List<Map<String, dynamic>>> uploadFiles(
+    String path, {
+    required List<XFile> files,
+    String fieldName = 'files',
+    String? authToken,
+  }) async {
+    final request = http.MultipartRequest('POST', _uri(path));
+
+    if (authToken != null && authToken.trim().isNotEmpty) {
+      request.headers['Authorization'] = 'Bearer $authToken';
+    }
+
+    for (final file in files) {
+      final bytes = await file.readAsBytes();
+      request.files.add(
+        http.MultipartFile.fromBytes(
+          fieldName,
+          bytes,
+          filename: file.name,
+        ),
+      );
+    }
+
+    final streamed = await request.send();
+    final response = await http.Response.fromStream(streamed);
+    final payload = _handleDynamicResponse(response);
+
+    if (payload is List<dynamic>) {
+      return payload.whereType<Map<String, dynamic>>().toList();
+    }
+
+    if (payload is Map<String, dynamic>) {
+      final data = payload['data'];
+      if (data is List<dynamic>) {
+        return data.whereType<Map<String, dynamic>>().toList();
+      }
+    }
+
+    return <Map<String, dynamic>>[];
+  }*/
+
+  String resolveMediaUrl(String rawUrl) {
+    final normalized = rawUrl.trim();
+    if (normalized.isEmpty) {
+      return normalized;
+    }
+
+    if (normalized.startsWith('http://') ||
+        normalized.startsWith('https://')) {
+      return normalized;
+    }
+
+    final base = Uri.parse(apiBaseUrl);
+    final origin = Uri(
+      scheme: base.scheme,
+      host: base.host,
+      port: base.hasPort ? base.port : null,
+    );
+
+    return origin.resolve(normalized).toString();
+  }
+
   Map<String, String> _headers({String? authToken}) {
     final headers = <String, String>{
       'Content-Type': 'application/json',
@@ -207,21 +379,38 @@ class ApiClient {
     return headers;
   }
 
-  Map<String, dynamic> _decodeBody(String body) {
+  dynamic _decodeBody(String body) {
     if (body.trim().isEmpty) {
       return <String, dynamic>{};
     }
 
-    final decoded = jsonDecode(body);
-    return decoded is Map<String, dynamic> ? decoded : <String, dynamic>{};
+    return jsonDecode(body);
+  }
+
+  dynamic _handleDynamicResponse(http.Response response) {
+    final payload = _decodeBody(response.body);
+
+    if (response.statusCode >= 400) {
+      throw ApiException(
+        _extractErrorMessage(
+          payload,
+          fallback: 'La solicitud no pudo completarse.',
+        ),
+      );
+    }
+
+    return payload;
   }
 
   String _extractErrorMessage(
-    Map<String, dynamic> payload, {
+    dynamic payload, {
     required String fallback,
   }) {
-    final error = payload['error'];
+    if (payload is! Map<String, dynamic>) {
+      return fallback;
+    }
 
+    final error = payload['error'];
     if (error is Map<String, dynamic>) {
       final message = error['message'];
       if (message != null && message.toString().trim().isNotEmpty) {
@@ -244,6 +433,7 @@ class ApiClient {
         return name.toString();
       }
     }
+
     return fallback;
   }
 
@@ -251,6 +441,7 @@ class ApiClient {
     if (value is num) {
       return value.toDouble();
     }
+
     return double.tryParse(value?.toString() ?? '') ?? 0;
   }
 

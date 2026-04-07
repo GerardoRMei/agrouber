@@ -5,6 +5,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'models/auth_session.dart';
 import 'pages/buyer_home_page.dart';
 import 'pages/login.dart';
+import 'pages/rider_page.dart';
+import 'pages/seller_home_page.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -28,6 +30,18 @@ class _CampoAppState extends State<CampoApp> {
     });
   }
 
+  Widget _buildHomeForSession(AuthSession session) {
+    switch (session.role) {
+      case 'seller':
+        return SellerHomePage(session: session);
+      case 'delivery':
+        return RiderPage(session: session);
+      case 'customer':
+      default:
+        return BuyerHomePage(session: session);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -40,7 +54,7 @@ class _CampoAppState extends State<CampoApp> {
       ),
       home: _session == null
           ? WebLoginPage(onLoginSuccess: _handleLogin)
-          : BuyerHomePage(session: _session!),
+          : _buildHomeForSession(_session!),
     );
   }
 }

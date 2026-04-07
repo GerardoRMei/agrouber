@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-
+import '../pages/seller_home_page.dart';
 import '../data/api_client.dart';
 import '../models/auth_session.dart';
 import '../pages/buyer_home_page.dart';
@@ -105,14 +105,10 @@ class _FormSectionState extends State<FormSection> {
       case 'delivery':
         page = RiderPage(session: session);
         break;
-      case 'customer':
-        page = BuyerHomePage(session: session);
-        break;
       case 'seller':
-        // Temporalmente puedes mandarlo a una pantalla placeholder
-        // o a la página que les toque integrar después.
-        page = BuyerHomePage(session: session);
+        page = SellerHomePage(session: session);
         break;
+      case 'customer':
       default:
         page = BuyerHomePage(session: session);
         break;
