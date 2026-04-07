@@ -1,22 +1,32 @@
 import 'package:flutter/material.dart';
-import '../models/cart_state.dart'; // Importa el estado
+import '../models/cart_state.dart';
 
 class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
-  final CartState cartState; // Recibimos el estado del carrito
+  final CartState cartState;
 
   const HomeAppBar({super.key, required this.cartState});
 
   @override
   Widget build(BuildContext context) {
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final bool isMobile = screenWidth < 600;
+    
+    final double hPadding = isMobile ? 20.0 : 64.0;
+
     return AppBar(
       backgroundColor: const Color(0xFF1F1209),
       elevation: 0,
       centerTitle: false,
-      title: const Padding(
-        padding: EdgeInsets.only(left: 48.0),
-        child: Text(
+      titleSpacing: 0,
+      title: Padding(
+        padding: EdgeInsets.only(left: hPadding),
+        child: const Text(
           'Agrouber',
-          style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: Colors.white),
+          style: TextStyle(
+            fontSize: 24, 
+            fontWeight: FontWeight.w800, 
+            color: Colors.white,
+          ),
         ),
       ),
       actions: [
@@ -26,7 +36,7 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
         ),
         _CartAction(cartState: cartState),
         Padding(
-          padding: const EdgeInsets.only(right: 64.0),
+          padding: EdgeInsets.only(right: hPadding),
           child: IconButton(
             icon: const Icon(Icons.person_outline, color: Colors.white),
             onPressed: () {},
@@ -65,7 +75,11 @@ class _CartAction extends StatelessWidget {
                   backgroundColor: const Color(0xFFE09A2C),
                   child: Text(
                     '${cartState.totalItems}',
-                    style: const TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                      fontSize: 10, 
+                      color: Colors.white, 
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 );
               },

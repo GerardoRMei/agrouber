@@ -192,6 +192,8 @@ class _BuyerHomePageState extends State<BuyerHomePage> {
     List<MarketplaceProduct> products,
     BoxConstraints constraints,
   ) {
+
+    final bool isMobile = constraints.maxWidth <= 800;
     if (products.isEmpty) {
       return const Center(
         child: Padding(
@@ -208,7 +210,7 @@ class _BuyerHomePageState extends State<BuyerHomePage> {
         crossAxisCount: constraints.maxWidth > 1200 ? 4 : (constraints.maxWidth > 800 ? 2 : 1),
         crossAxisSpacing: 20,
         mainAxisSpacing: 20,
-        childAspectRatio: 0.85,
+        childAspectRatio: isMobile ? 3.0 : 0.85,
       ),
       itemCount: products.length,
       itemBuilder: (context, index) {
@@ -218,6 +220,7 @@ class _BuyerHomePageState extends State<BuyerHomePage> {
           imageUrl: product.visual,
           priceDisplay: product.priceDisplay,
           sellerCount: product.sellerCount,
+          isMobile: isMobile,
           onAddToCart: () {
             _cartState.addProduct(product);
             ScaffoldMessenger.of(context).showSnackBar(
