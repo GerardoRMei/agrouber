@@ -1,7 +1,9 @@
+import 'package:agrouber/widgets/cart_panel.dart';
 import 'package:flutter/material.dart';
 
 import '../data/api_client.dart';
 import '../models/auth_session.dart';
+import '../models/cart_state.dart';
 import '../models/marketplace_product.dart';
 import '../widgets/home_app_bar.dart';
 import '../widgets/market_product_card.dart';
@@ -21,6 +23,7 @@ class BuyerHomePage extends StatefulWidget {
 
 class _BuyerHomePageState extends State<BuyerHomePage> {
   final ApiClient _apiClient = ApiClient();
+  final CartState _cartState = CartState();
   final TextEditingController _searchController = TextEditingController();
 
   List<MarketplaceProduct> _displayProducts = <MarketplaceProduct>[];
@@ -105,9 +108,19 @@ class _BuyerHomePageState extends State<BuyerHomePage> {
     }).toList();
 
     return Scaffold(
-      appBar: const HomeAppBar(),
+      appBar: HomeAppBar(cartState: _cartState),
+      endDrawer: Drawer(
+        width: 400,
+        child: CartPanel(
+          cartState: _cartState,
+          isDrawer: true,
+        ),
+      ),
       body: LayoutBuilder(
         builder: (context, constraints) {
+          final bool isMobile = constraints.maxWidth < 600;
+          final double hPadding = isMobile ? 20.0 : 64.0;
+
           if (_isLoading) {
             return const SafeArea(
               child: Center(
@@ -122,7 +135,7 @@ class _BuyerHomePageState extends State<BuyerHomePage> {
                 onRefresh: _fetchMarketData,
                 child: ListView(
                   physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.all(32),
+                  padding: EdgeInsets.symmetric(horizontal: hPadding, vertical: 32),
                   children: [
                     const SizedBox(height: 120),
                     const Icon(
@@ -156,13 +169,13 @@ class _BuyerHomePageState extends State<BuyerHomePage> {
               onRefresh: _fetchMarketData,
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: 64, vertical: 24),
+                padding: EdgeInsets.symmetric(horizontal: hPadding, vertical: 24),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     WelcomeHeader(userName: widget.session.displayName),
                     const SizedBox(height: 24),
-                    _buildSearchAndFilters(categories),
+                    _buildSearchAndFilters(categories, constraints),
                     const SizedBox(height: 32),
                     Text(
                       selectedCategory ?? 'Mercado disponible',
@@ -187,6 +200,8 @@ class _BuyerHomePageState extends State<BuyerHomePage> {
     List<MarketplaceProduct> products,
     BoxConstraints constraints,
   ) {
+
+    final bool isMobile = constraints.maxWidth <= 800;
     if (products.isEmpty) {
       return const Center(
         child: Padding(
@@ -203,7 +218,7 @@ class _BuyerHomePageState extends State<BuyerHomePage> {
         crossAxisCount: constraints.maxWidth > 1200 ? 4 : (constraints.maxWidth > 800 ? 2 : 1),
         crossAxisSpacing: 20,
         mainAxisSpacing: 20,
-        childAspectRatio: 0.85,
+        childAspectRatio: isMobile ? 3.0 : 0.85,
       ),
       itemCount: products.length,
       itemBuilder: (context, index) {
@@ -213,19 +228,36 @@ class _BuyerHomePageState extends State<BuyerHomePage> {
           imageUrl: product.visual,
           priceDisplay: product.priceDisplay,
           sellerCount: product.sellerCount,
+          isMobile: isMobile,
+          onAddToCart: () {
+            _cartState.addProduct(product);
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('${product.name} agregado al carrito'),
+                backgroundColor: const Color(0xFF4A7A4D),
+                behavior: SnackBarBehavior.floating,
+                duration: const Duration(seconds: 2),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            );
+          },
         );
       },
     );
   }
 
-  Widget _buildSearchAndFilters(List<String> categories) {
+  Widget _buildSearchAndFilters(List<String> categories, BoxConstraints constraints) {
+    final bool isMobile = constraints.maxWidth < 600;
+
     return Wrap(
       spacing: 12,
       runSpacing: 12,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
         SizedBox(
-          width: 420,
+          width: isMobile ? double.infinity : 420,
           child: TextField(
             controller: _searchController,
             onChanged: (_) => setState(() {}),

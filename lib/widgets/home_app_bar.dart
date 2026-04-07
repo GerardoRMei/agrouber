@@ -1,21 +1,31 @@
+import 'package:agrouber/widgets/cart_panel.dart';
 import 'package:flutter/material.dart';
+import '../models/cart_state.dart';
 
 class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
-  const HomeAppBar({super.key});
+  final CartState cartState;
+
+  const HomeAppBar({super.key, required this.cartState});
 
   @override
   Widget build(BuildContext context) {
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final bool isMobile = screenWidth < 600;
+    
+    final double hPadding = isMobile ? 20.0 : 64.0;
+
     return AppBar(
       backgroundColor: const Color(0xFF1F1209),
       elevation: 0,
       centerTitle: false,
-      title: const Padding(
-        padding: EdgeInsets.only(left: 48.0),
-        child: Text(
+      titleSpacing: 0,
+      title: Padding(
+        padding: EdgeInsets.only(left: hPadding),
+        child: const Text(
           'Agrouber',
           style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.w800,
+            fontSize: 24, 
+            fontWeight: FontWeight.w800, 
             color: Colors.white,
           ),
         ),
@@ -25,9 +35,9 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
           icon: const Icon(Icons.home_rounded, color: Colors.white),
           onPressed: () {},
         ),
-        const _CartAction(count: '3'),
+        _CartAction(cartState: cartState),
         Padding(
-          padding: const EdgeInsets.only(right: 64.0),
+          padding: EdgeInsets.only(right: hPadding),
           child: IconButton(
             icon: const Icon(Icons.person_outline, color: Colors.white),
             onPressed: () {},
@@ -42,30 +52,60 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
 }
 
 class _CartAction extends StatelessWidget {
-  final String count;
-  const _CartAction({required this.count});
+  final CartState cartState;
+  
+  const _CartAction({required this.cartState});
 
   @override
   Widget build(BuildContext context) {
-    return IconButton(
-      icon: Stack(
-        children: [
-          const Icon(Icons.shopping_cart_outlined, color: Colors.white),
-          Positioned(
-            right: 0,
-            top: 0,
-            child: CircleAvatar(
-              radius: 7,
-              backgroundColor: const Color(0xFFE09A2C),
-              child: Text(
-                count,
-                style: const TextStyle(fontSize: 9, color: Colors.white),
-              ),
-            ),
-          )
-        ],
-      ),
-      onPressed: () {},
+    return Builder(
+      builder: (scaffoldContext) {
+        return IconButton(
+          icon: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              const Icon(Icons.shopping_cart_outlined, color: Colors.white),
+              Positioned(
+                right: -4,
+                top: -4,
+                child: ListenableBuilder(
+                  listenable: cartState,
+                  builder: (context, child) {
+                    if (cartState.totalItems == 0) return const SizedBox.shrink();
+                    
+                    return CircleAvatar(
+                      radius: 8,
+                      backgroundColor: const Color(0xFFE09A2C),
+                      child: Text(
+                        '${cartState.totalItems}',
+                        style: const TextStyle(
+                          fontSize: 10, 
+                          color: Colors.white, 
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              )
+            ],
+          ),
+          onPressed: () {
+            final bool isMobile = MediaQuery.of(scaffoldContext).size.width < 600;
+
+            if (isMobile) {
+              showModalBottomSheet(
+                context: scaffoldContext,
+                isScrollControlled: true,
+                backgroundColor: Colors.transparent,
+                builder: (context) => CartPanel(cartState: cartState),
+              );
+            } else {
+              Scaffold.of(scaffoldContext).openEndDrawer();
+            }
+          },
+        );
+      }
     );
   }
 }
