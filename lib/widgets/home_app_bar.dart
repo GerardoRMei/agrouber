@@ -1,3 +1,4 @@
+import 'package:agrouber/widgets/cart_panel.dart';
 import 'package:flutter/material.dart';
 import '../models/cart_state.dart';
 
@@ -57,39 +58,54 @@ class _CartAction extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return IconButton(
-      icon: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          const Icon(Icons.shopping_cart_outlined, color: Colors.white),
-          Positioned(
-            right: -4,
-            top: -4,
-            child: ListenableBuilder(
-              listenable: cartState,
-              builder: (context, child) {
-                if (cartState.totalItems == 0) return const SizedBox.shrink();
-                
-                return CircleAvatar(
-                  radius: 8,
-                  backgroundColor: const Color(0xFFE09A2C),
-                  child: Text(
-                    '${cartState.totalItems}',
-                    style: const TextStyle(
-                      fontSize: 10, 
-                      color: Colors.white, 
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                );
-              },
-            ),
-          )
-        ],
-      ),
-      onPressed: () {
-        print("Productos en carrito: ${cartState.totalItems}");
-      },
+    return Builder(
+      builder: (scaffoldContext) {
+        return IconButton(
+          icon: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              const Icon(Icons.shopping_cart_outlined, color: Colors.white),
+              Positioned(
+                right: -4,
+                top: -4,
+                child: ListenableBuilder(
+                  listenable: cartState,
+                  builder: (context, child) {
+                    if (cartState.totalItems == 0) return const SizedBox.shrink();
+                    
+                    return CircleAvatar(
+                      radius: 8,
+                      backgroundColor: const Color(0xFFE09A2C),
+                      child: Text(
+                        '${cartState.totalItems}',
+                        style: const TextStyle(
+                          fontSize: 10, 
+                          color: Colors.white, 
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              )
+            ],
+          ),
+          onPressed: () {
+            final bool isMobile = MediaQuery.of(scaffoldContext).size.width < 600;
+
+            if (isMobile) {
+              showModalBottomSheet(
+                context: scaffoldContext,
+                isScrollControlled: true,
+                backgroundColor: Colors.transparent,
+                builder: (context) => CartPanel(cartState: cartState),
+              );
+            } else {
+              Scaffold.of(scaffoldContext).openEndDrawer();
+            }
+          },
+        );
+      }
     );
   }
 }

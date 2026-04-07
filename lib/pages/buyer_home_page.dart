@@ -1,3 +1,4 @@
+import 'package:agrouber/widgets/cart_panel.dart';
 import 'package:flutter/material.dart';
 
 import '../data/api_client.dart';
@@ -108,6 +109,13 @@ class _BuyerHomePageState extends State<BuyerHomePage> {
 
     return Scaffold(
       appBar: HomeAppBar(cartState: _cartState),
+      endDrawer: Drawer(
+        width: 400,
+        child: CartPanel(
+          cartState: _cartState,
+          isDrawer: true,
+        ),
+      ),
       body: LayoutBuilder(
         builder: (context, constraints) {
           final bool isMobile = constraints.maxWidth < 600;
