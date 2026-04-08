@@ -1,11 +1,46 @@
 import 'package:agrouber/widgets/cart_panel.dart';
 import 'package:flutter/material.dart';
 import '../models/cart_state.dart';
+import '../models/auth_session.dart';
+import 'UserProfile.dart';
 
 class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
   final CartState cartState;
+  final AuthSession session;
+  final VoidCallback? onEditProfile;
+  final VoidCallback? onChangePassword;
+  final VoidCallback onLogout;
 
-  const HomeAppBar({super.key, required this.cartState});
+
+  const HomeAppBar({super.key, required this.cartState, required this.session, 
+                  required this.onEditProfile, this.onChangePassword, required this.onLogout});
+
+
+  void _openUserProfile(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => UserProfile(
+        firstName: session.displayName.isNotEmpty
+            ? session.displayName
+            : session.email,
+        email: session.email,
+        onEditProfile: () {
+          Navigator.pop(context);
+          onEditProfile?.call();
+        },
+        onChangePassword: () {
+          Navigator.pop(context);
+          onChangePassword?.call();
+        },
+        onLogout: () {
+          Navigator.pop(context);
+          onLogout();
+        },
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -40,7 +75,7 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
           padding: EdgeInsets.only(right: hPadding),
           child: IconButton(
             icon: const Icon(Icons.person_outline, color: Colors.white),
-            onPressed: () {},
+            onPressed: () {_openUserProfile(context);},
           ),
         ),
       ],
