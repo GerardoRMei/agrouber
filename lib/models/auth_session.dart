@@ -5,8 +5,9 @@ class AuthSession {
   final String displayName;
   final String role;
 
-  // Nuevos campos opcionales, no rompen tu código actual.
-  final String? username;
+  // username ahora ya no es nullable
+  final String username;
+
   final String? firstName;
   final String? phone;
   final String? profileImageUrl;
@@ -17,7 +18,7 @@ class AuthSession {
     required this.email,
     required this.displayName,
     required this.role,
-    this.username,
+    required this.username,
     this.firstName,
     this.phone,
     this.profileImageUrl,
@@ -44,7 +45,7 @@ class AuthSession {
         nestedRole: user['role'],
         seller: user['seller'] ?? json['seller'],
       ),
-      username: username.isEmpty ? null : username,
+      username: username.isNotEmpty ? username : email,
       firstName: firstName.isEmpty ? null : firstName,
       phone: _optionalString(user['phone']),
       profileImageUrl: _extractMediaUrl(
@@ -53,8 +54,6 @@ class AuthSession {
     );
   }
 
-  /// Útil si luego reconstruyes la sesión con /api/users/me
-  /// o con otro endpoint que no venga en formato { jwt, user }.
   factory AuthSession.fromCurrentUserJson(
     Map<String, dynamic> json, {
     required String jwt,
@@ -79,7 +78,7 @@ class AuthSession {
         seller: json['seller'],
         fallback: fallbackRole ?? 'customer',
       ),
-      username: username.isEmpty ? null : username,
+      username: username.isNotEmpty ? username : email,
       firstName: firstName.isEmpty ? null : firstName,
       phone: _optionalString(json['phone']),
       profileImageUrl: _extractMediaUrl(json['profileImage']),

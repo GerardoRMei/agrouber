@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class UserProfile extends StatelessWidget {
-  final String firstName;
+  final String username;
   final String email;
   final VoidCallback onEditProfile;
   final VoidCallback onChangePassword;
@@ -9,7 +9,7 @@ class UserProfile extends StatelessWidget {
 
   const UserProfile({
     super.key,
-    required this.firstName,
+    required this.username,
     required this.email,
     required this.onEditProfile,
     required this.onChangePassword,
@@ -54,7 +54,7 @@ class UserProfile extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              firstName,
+              username,
               style: const TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,

@@ -3,18 +3,22 @@ import 'package:flutter/material.dart';
 import '../models/cart_state.dart';
 import '../models/auth_session.dart';
 import 'UserProfile.dart';
+import '../models/profile_handling.dart';
+
+
 
 class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
   final CartState cartState;
   final AuthSession session;
-  final VoidCallback? onEditProfile;
-  final VoidCallback? onChangePassword;
   final VoidCallback onLogout;
 
 
-  const HomeAppBar({super.key, required this.cartState, required this.session, 
-                  required this.onEditProfile, this.onChangePassword, required this.onLogout});
-
+  const HomeAppBar({
+    super.key,
+    required this.cartState,
+    required this.session,
+    required this.onLogout,
+  });
 
   void _openUserProfile(BuildContext context) {
     showModalBottomSheet(
@@ -22,21 +26,21 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => UserProfile(
-        firstName: session.displayName.isNotEmpty
-            ? session.displayName
+        username: session.username.isNotEmpty
+            ? session.username
             : session.email,
         email: session.email,
         onEditProfile: () {
           Navigator.pop(context);
-          onEditProfile?.call();
+          ProfileHandler.onEditProfile(context, session);
         },
         onChangePassword: () {
           Navigator.pop(context);
-          onChangePassword?.call();
+          ProfileHandler.onChangePassword(context, session);
         },
         onLogout: () {
           Navigator.pop(context);
-          onLogout();
+          ProfileHandler.onLogout(context, onLogout);
         },
       ),
     );
@@ -57,7 +61,7 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
       title: Padding(
         padding: EdgeInsets.only(left: hPadding),
         child: const Text(
-          'Agrouber',
+          'AgroRun',
           style: TextStyle(
             fontSize: 24, 
             fontWeight: FontWeight.w800, 

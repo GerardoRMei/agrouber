@@ -30,15 +30,27 @@ class _CampoAppState extends State<CampoApp> {
     });
   }
 
+  void _handleLogout() {
+    setState(() {
+      _session = null;
+    });
+  }
+
   Widget _buildHomeForSession(AuthSession session) {
     switch (session.role) {
       case 'seller':
-        return SellerHomePage(session: session);
+        return SellerHomePage(
+          session: session,
+          onLogout: _handleLogout,
+        );
       case 'delivery':
-        return RiderPage(session: session);
+        return RiderPage(session: session, onLogout: _handleLogout);
       case 'customer':
       default:
-        return BuyerHomePage(session: session);
+        return BuyerHomePage(
+          session: session,
+          onLogout: _handleLogout,
+        );
     }
   }
 

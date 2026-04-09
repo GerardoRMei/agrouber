@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../models/auth_session.dart';
-import '../data/api_client.dart';
 
 class ChangePasswordPage extends StatefulWidget {
   final AuthSession session;

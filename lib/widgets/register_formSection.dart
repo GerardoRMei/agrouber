@@ -389,6 +389,7 @@
                   onTap: () => _onRoleSelected(RegisterRole.producer),
                 ),
               ),
+              /*
               const SizedBox(width: 8),
               Expanded(
                 child: RegisterRoleCard(
@@ -398,7 +399,7 @@
                   selected: _selectedRole == RegisterRole.rider,
                   onTap: () => _onRoleSelected(RegisterRole.rider),
                 ),
-              ),
+              ),*/
             ],
           ),
         ],
