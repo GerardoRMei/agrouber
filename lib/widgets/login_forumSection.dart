@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
-import '../pages/seller_home_page.dart';
 import '../data/api_client.dart';
 import '../models/auth_session.dart';
-import '../pages/buyer_home_page.dart';
 import '../pages/register_page.dart';
-import '../pages/rider_page.dart';
 import 'login_textFields.dart';
 
 class FormSection extends StatefulWidget {
@@ -72,7 +69,6 @@ class _FormSectionState extends State<FormSection> {
       }
 
       widget.onLoginSuccess(session);
-      _redirectByRole(session);
     } on ApiException catch (error) {
       if (!mounted) {
         return;
@@ -96,29 +92,6 @@ class _FormSectionState extends State<FormSection> {
         });
       }
     }
-  }
-
-  void _redirectByRole(AuthSession session) {
-    late final Widget page;
-
-    switch (session.role) {
-      case 'delivery':
-        page = RiderPage(session: session);
-        break;
-      case 'seller':
-        page = SellerHomePage(session: session);
-        break;
-      case 'customer':
-      default:
-        page = BuyerHomePage(session: session);
-        break;
-    }
-
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute<void>(
-        builder: (_) => page,
-      ),
-    );
   }
 
   @override

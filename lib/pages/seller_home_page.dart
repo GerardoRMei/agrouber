@@ -5,14 +5,19 @@ import '../models/auth_session.dart';
 import '../models/seller_profile.dart';
 import 'seller_product_form_page.dart';
 import 'seller_products_page.dart';
+import '../widgets/UserProfile.dart';
+import '../models/profile_handling.dart';
 
 class SellerHomePage extends StatefulWidget {
+  
   const SellerHomePage({
     super.key,
     required this.session,
+    required this.onLogout,
   });
 
   final AuthSession session;
+  final VoidCallback onLogout;
 
   @override
   State<SellerHomePage> createState() => _SellerHomePageState();
@@ -25,7 +30,31 @@ class _SellerHomePageState extends State<SellerHomePage> {
   String? _errorMessage;
   String? _statusHint;
   SellerProfile? _profile;
-
+  void _openUserProfile(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => UserProfile(
+        username: widget.session.username.isNotEmpty
+            ? widget.session.username
+            : widget.session.email,
+        email: widget.session.email,
+        onEditProfile: () {
+          Navigator.pop(context);
+          ProfileHandler.onEditProfile(context, widget.session);
+        },
+        onChangePassword: () {
+          Navigator.pop(context);
+          ProfileHandler.onChangePassword(context, widget.session);
+        },
+        onLogout: () {
+          Navigator.pop(context);
+          ProfileHandler.onLogout(context, widget.onLogout);
+        },
+      ),
+    );
+  }
   @override
   void initState() {
     super.initState();
@@ -134,7 +163,15 @@ class _SellerHomePageState extends State<SellerHomePage> {
           'Mi tienda',
           style: TextStyle(fontWeight: FontWeight.w800),
         ),
+        
         actions: [
+          Padding(
+          padding: EdgeInsets.only(right: 16),
+          child: IconButton(
+            icon: const Icon(Icons.person_outline, color: Colors.white),
+            onPressed: () {_openUserProfile(context);},
+          ),
+        ),
           IconButton(
             onPressed: _isLoading ? null : _loadSellerData,
             icon: const Icon(Icons.refresh_rounded),

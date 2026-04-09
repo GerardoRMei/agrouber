@@ -7,18 +7,15 @@ import '../models/marketplace_product.dart';
 import '../widgets/home_app_bar.dart';
 import '../widgets/market_product_card.dart';
 import '../widgets/welcome_header.dart';
-import 'login.dart';
-import 'change_password_page.dart';
-import 'edit_profile_page.dart';
-
-
 class BuyerHomePage extends StatefulWidget {
   const BuyerHomePage({
     super.key,
     required this.session,
+    required this.onLogout,
   });
 
   final AuthSession session;
+  final VoidCallback onLogout;
 
   @override
   State<BuyerHomePage> createState() => _BuyerHomePageState();
@@ -73,7 +70,7 @@ class _BuyerHomePageState extends State<BuyerHomePage> {
             : (categories.contains(selectedCategory) ? selectedCategory : categories.first);
         _isLoading = false;
       });
-    } on ApiException catch (error) {
+    } on ApiException catch (error) { 
       if (!mounted) {
         return;
       }
@@ -111,34 +108,10 @@ class _BuyerHomePageState extends State<BuyerHomePage> {
     }).toList();
 
     return Scaffold(
-      appBar: HomeAppBar(cartState: _cartState, session: widget.session,
-      onEditProfile: (){
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => EditProfilePage(session: widget.session),
-          ),
-        );
-      },
-      onChangePassword: (){
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => const ChangePasswordPage(),
-          ),
-        );
-      },
-      onLogout: (){
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => WebLoginPage(
-            onLoginSuccess: (session) {
-              Navigator.of(context).pushAndRemoveUntil(
-                MaterialPageRoute(builder: (_) => BuyerHomePage(session: session)),
-                (route) => false,
-              );
-            },
-          )),
-          (route) => false,
-        );
-      }
+      appBar: HomeAppBar(
+        cartState: _cartState,
+        session: widget.session,
+        onLogout: widget.onLogout,
       ),
       endDrawer: Drawer(
         width: 400,

@@ -11,9 +11,11 @@ class RiderPage extends StatelessWidget {
   const RiderPage({
     super.key,
     required this.session,
+    required this.onLogout,
   });
 
   final AuthSession session;
+  final VoidCallback onLogout;
 
   @override
   Widget build(BuildContext context) {
@@ -23,7 +25,7 @@ class RiderPage extends StatelessWidget {
       backgroundColor: const Color(0xFFF3F0EA),
       body: Column(
         children: [
-          const RiderHeader(),
+          RiderHeader(session: session, onLogout: onLogout),
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(20),
