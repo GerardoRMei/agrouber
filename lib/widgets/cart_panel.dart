@@ -1,3 +1,4 @@
+import 'package:agrouber/pages/checkout_page.dart';
 import 'package:flutter/material.dart';
 import '../models/cart_state.dart';
 
@@ -101,24 +102,47 @@ class CartPanel extends StatelessWidget {
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                 ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  '\$${item.finalPrice.toStringAsFixed(2)}',
-                                  style: const TextStyle(color: Color(0xFF4A7A4D), fontWeight: FontWeight.w600),
-                                ),
+                                const SizedBox(height: 4),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFE9EFE3),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    '$qtyDisplay ${item.unitLabel}',
+                                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF2E4F2F)),
+                                  ),
+                                )
                               ],
                             ),
                           ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFE9EFE3),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Text(
-                              '$qtyDisplay ${item.unitLabel}',
-                              style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF2E4F2F)),
-                            ),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(
+                                '\$${item.finalPrice.toStringAsFixed(2)}',
+                                style: const TextStyle(
+                                  fontSize: 16, 
+                                  color: Color(0xFF4A7A4D), 
+                                  fontWeight: FontWeight.w800
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              InkWell(
+                                onTap: () {
+                                  cartState.removeProduct(item);
+                                },
+                                child: const Text(
+                                  'Eliminar',
+                                  style: TextStyle(
+                                    color: Colors.redAccent,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ],
                           )
                         ],
                       );
@@ -161,9 +185,12 @@ class CartPanel extends StatelessWidget {
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                     ),
                     onPressed: () {
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Navegando a pago...')),
+                      Navigator.pop(context); 
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => CheckoutPage(cartState: cartState),
+                        ),
                       );
                     },
                     child: const Text(
