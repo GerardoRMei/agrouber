@@ -1,3 +1,4 @@
+import 'package:agrouber/widgets/add_to_cart_modal.dart';
 import 'package:agrouber/widgets/cart_panel.dart';
 import 'package:flutter/material.dart';
 import '../data/api_client.dart';
@@ -233,95 +234,39 @@ class _BuyerHomePageState extends State<BuyerHomePage> {
           sellerCount: product.sellerCount,
           isMobile: isMobile,
           onAddToCart: () {
-            if (product.options.length > 1) {
-              _showSellerSelectionModal(context, product);
-            } else {
-              _addToCartAndNotify(product, product.options.first);
-            }
+            showModalBottomSheet(
+              context: context,
+              isScrollControlled: true,
+              backgroundColor: const Color(0xFFF3F0EA),
+              shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              builder: (context) => AddToCartModal(
+                product: product,
+                onAddToCart: (option, quantity, unitLabel, finalPrice) {
+                  _cartState.addProduct(
+                    product: product,
+                    option: option,
+                    quantity: quantity,
+                    unitLabel: unitLabel,
+                    finalPrice: finalPrice,
+                  );
+                  Navigator.pop(context);
+                  
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('${quantity.toStringAsFixed(0)} $unitLabel de ${product.name} agregado.'),
+                      backgroundColor: const Color(0xFF4A7A4D),
+                      behavior: SnackBarBehavior.floating,
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
+                },
+              ),
+            );
           },
         );
       },
-    );
-  }
-
-  void _showSellerSelectionModal(BuildContext context, MarketplaceProduct product) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: const Color(0xFFF3F0EA),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (BuildContext context) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        'Selecciona un vendedor para ${product.name}',
-                        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF1F1209)),
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.close),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                // Lista de vendedores
-                ...product.options.map((option) {
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.grey.shade200),
-                    ),
-                    child: ListTile(
-                      leading: const CircleAvatar(
-                        backgroundColor: Color(0xFFE9EFE3),
-                        child: Icon(Icons.storefront, color: Color(0xFF4A7A4D)),
-                      ),
-                      title: Text(option.sellerName, style: const TextStyle(fontWeight: FontWeight.w600)),
-                      trailing: Text(
-                        '\$${option.price.toStringAsFixed(2)}',
-                        style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF1F1209), fontSize: 16),
-                      ),
-                      onTap: () {
-                        Navigator.pop(context); // Cierra el modal
-                        _addToCartAndNotify(product, option); // Agrega al carrito
-                      },
-                    ),
-                  );
-                }),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  void _addToCartAndNotify(MarketplaceProduct product, ProductOption selectedOption) {
-    // Aquí deberás actualizar tu _cartState para que acepte la opción seleccionada.
-    // Por ahora lo simulamos llamando al método actual:
-    // _cartState.addProduct(product); // Idealmente: _cartState.addProduct(product, selectedOption);
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('${product.name} de ${selectedOption.sellerName} agregado al carrito'),
-        backgroundColor: const Color(0xFF4A7A4D),
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 2),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      ),
     );
   }
 

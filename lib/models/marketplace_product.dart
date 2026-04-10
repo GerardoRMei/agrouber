@@ -1,3 +1,5 @@
+import 'package:agrouber/models/product_unit.dart';
+
 class ProductOption {
   final String sellerName;
   final double price;
@@ -13,6 +15,7 @@ class MarketplaceProduct {
   final String categoryName;
   final String priceDisplay;
   final int sellerCount;
+  final ProductUnit unit;
   final String visual;
   final List<ProductOption> options;
 
@@ -21,6 +24,7 @@ class MarketplaceProduct {
     required this.categoryName,
     required this.priceDisplay,
     required this.sellerCount,
+    required this.unit,
     required this.visual,
     required this.options,
   });

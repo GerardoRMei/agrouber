@@ -31,7 +31,7 @@ class MarketProductCard extends StatelessWidget {
   // ==========================================
   Widget _buildCompactCard() {
     return Container(
-      height: 120, // Altura fija para el modo lista
+      height: 120,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),

@@ -31,6 +31,11 @@ class CartPanel extends StatelessWidget {
               return _buildEmptyCart(context);
             }
 
+            double subtotal = 0.0;
+            for (var item in items) {
+              subtotal += item.finalPrice;
+            }
+
             return Column(
               mainAxisSize: isDrawer ? MainAxisSize.max : MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -61,6 +66,11 @@ class CartPanel extends StatelessWidget {
                     separatorBuilder: (context, index) => const Divider(height: 24),
                     itemBuilder: (context, index) {
                       final item = items[index];
+                      
+                      final qtyDisplay = item.quantity.truncateToDouble() == item.quantity 
+                          ? item.quantity.toStringAsFixed(0) 
+                          : item.quantity.toStringAsFixed(1);
+
                       return Row(
                         children: [
                           Container(
@@ -86,7 +96,14 @@ class CartPanel extends StatelessWidget {
                                   overflow: TextOverflow.ellipsis,
                                 ),
                                 Text(
-                                  item.product.priceDisplay,
+                                  'de ${item.option.sellerName}',
+                                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  '\$${item.finalPrice.toStringAsFixed(2)}',
                                   style: const TextStyle(color: Color(0xFF4A7A4D), fontWeight: FontWeight.w600),
                                 ),
                               ],
@@ -99,7 +116,7 @@ class CartPanel extends StatelessWidget {
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(
-                              'x${item.quantity}',
+                              '$qtyDisplay ${item.unitLabel}',
                               style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF2E4F2F)),
                             ),
                           )
@@ -108,7 +125,33 @@ class CartPanel extends StatelessWidget {
                     },
                   ),
                 ),
+                
+                const SizedBox(height: 16),
+                const Divider(thickness: 1),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Subtotal',
+                      style: TextStyle(
+                        fontSize: 18,
+                        color: Colors.grey,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    Text(
+                      '\$${subtotal.toStringAsFixed(2)}',
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w900,
+                        color: Color(0xFF1F1209),
+                      ),
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 24),
+                
                 SizedBox(
                   width: double.infinity,
                   height: 56,
