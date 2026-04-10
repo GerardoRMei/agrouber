@@ -40,4 +40,14 @@ class CartState extends ChangeNotifier {
     
     notifyListeners();
   }
+
+  void removeProduct(CartItem item) {
+    _items.remove(item);
+    notifyListeners();
+  }
+
+  void clearCart() {
+    _items.clear();
+    notifyListeners();
+  }
 }
