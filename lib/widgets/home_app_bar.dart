@@ -1,11 +1,50 @@
 import 'package:agrouber/widgets/cart_panel.dart';
 import 'package:flutter/material.dart';
 import '../models/cart_state.dart';
+import '../models/auth_session.dart';
+import 'UserProfile.dart';
+import '../models/profile_handling.dart';
+
+
 
 class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
   final CartState cartState;
+  final AuthSession session;
+  final VoidCallback onLogout;
 
-  const HomeAppBar({super.key, required this.cartState});
+
+  const HomeAppBar({
+    super.key,
+    required this.cartState,
+    required this.session,
+    required this.onLogout,
+  });
+
+  void _openUserProfile(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => UserProfile(
+        username: session.username.isNotEmpty
+            ? session.username
+            : session.email,
+        email: session.email,
+        onEditProfile: () {
+          Navigator.pop(context);
+          ProfileHandler.onEditProfile(context, session);
+        },
+        onChangePassword: () {
+          Navigator.pop(context);
+          ProfileHandler.onChangePassword(context, session);
+        },
+        onLogout: () {
+          Navigator.pop(context);
+          ProfileHandler.onLogout(context, onLogout);
+        },
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -22,7 +61,7 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
       title: Padding(
         padding: EdgeInsets.only(left: hPadding),
         child: const Text(
-          'Agrouber',
+          'AgroRun',
           style: TextStyle(
             fontSize: 24, 
             fontWeight: FontWeight.w800, 
@@ -40,7 +79,7 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
           padding: EdgeInsets.only(right: hPadding),
           child: IconButton(
             icon: const Icon(Icons.person_outline, color: Colors.white),
-            onPressed: () {},
+            onPressed: () {_openUserProfile(context);},
           ),
         ),
       ],

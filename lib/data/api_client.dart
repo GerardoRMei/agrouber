@@ -26,6 +26,17 @@ class ApiClient {
     );
   }
 
+
+  String _asString(dynamic value) => (value ?? '').toString().trim();
+
+  Map<String, dynamic> normalizeEditableProfile(Map<String, dynamic> payload) {
+    return {
+      'id': payload['id'],
+      'username': _asString(payload['username']),
+      'email': _asString(payload['email']),
+      'phone': _asString(payload['phone']),
+    };
+  }
   Future<Map<String, dynamic>> register({
     required String role,
     required String username,
@@ -117,6 +128,44 @@ class ApiClient {
 
     return AuthSession.fromJson(payload);
   }
+
+    Future<Map<String, dynamic>> getMyProfile({
+    required String authToken,
+  }) async {
+    final payload = await getJson(
+      '/api/users/me',
+      authToken: authToken,
+    );
+
+    return normalizeEditableProfile(payload);
+  }
+
+  Future<Map<String, dynamic>> updateMyBasicProfile({
+    required String authToken,
+    required int userId,
+    required String username,
+    required String email,
+    required String phone,
+  }) async {
+    final payload = await putJson(
+      '/api/users/$userId',
+      authToken: authToken,
+      body: {
+        'username': username.trim(),
+        'email': email.trim(),
+        'phone': phone.trim(),
+      },
+    );
+    
+
+    return normalizeEditableProfile({
+      'id': payload['id'] ?? userId,
+      'username': payload['username'] ?? username,
+      'email': payload['email'] ?? email,
+      'phone': payload['phone'] ?? phone,
+    });
+  }
+  
 
   Future<List<MarketplaceProduct>> fetchMarketplaceProducts({
     required String authToken,

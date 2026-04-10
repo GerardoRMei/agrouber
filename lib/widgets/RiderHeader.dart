@@ -1,7 +1,38 @@
 import 'package:flutter/material.dart';
+import '../models/auth_session.dart';
+import 'UserProfile.dart';
+import '../models/profile_handling.dart';
 
 class RiderHeader extends StatelessWidget {
-  const RiderHeader({super.key});
+  final AuthSession session;
+  final VoidCallback onLogout;
+  const RiderHeader({super.key, required this.session, required this.onLogout});
+
+  void _openUserProfile(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => UserProfile(
+        username: session.username.isNotEmpty
+            ? session.username
+            : session.email,
+        email: session.email,
+        onEditProfile: () {
+          Navigator.pop(context);
+          ProfileHandler.onEditProfile(context, session);
+        },
+        onChangePassword: () {
+          Navigator.pop(context);
+          ProfileHandler.onChangePassword(context, session);
+        },
+        onLogout: () {
+          Navigator.pop(context);
+          ProfileHandler.onLogout(context, onLogout);
+        },
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -14,7 +45,7 @@ class RiderHeader extends StatelessWidget {
         children: [
           const Expanded(
             child: Text(
-              'Agrouber',
+              'AgroRun',
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 22,
@@ -31,20 +62,13 @@ class RiderHeader extends StatelessWidget {
             child: const Icon(Icons.notifications_none, color: Colors.white),
           ),
           const SizedBox(width: 10),
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.orange,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            child: const Text(
-              'CM',
-              style: TextStyle(
-                color: Colors.black,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+          Padding(
+          padding: EdgeInsets.only(right: 20),
+          child: IconButton(
+            icon: const Icon(Icons.person_outline, color: Colors.white),
+            onPressed: () {_openUserProfile(context);},
           ),
+        ),
         ],
       ),
     );

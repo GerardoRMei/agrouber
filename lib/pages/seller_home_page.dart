@@ -5,14 +5,19 @@ import '../models/auth_session.dart';
 import '../models/seller_profile.dart';
 import 'seller_product_form_page.dart';
 import 'seller_products_page.dart';
+import '../widgets/UserProfile.dart';
+import '../models/profile_handling.dart';
 
 class SellerHomePage extends StatefulWidget {
+  
   const SellerHomePage({
     super.key,
     required this.session,
+    required this.onLogout,
   });
 
   final AuthSession session;
+  final VoidCallback onLogout;
 
   @override
   State<SellerHomePage> createState() => _SellerHomePageState();
@@ -25,7 +30,31 @@ class _SellerHomePageState extends State<SellerHomePage> {
   String? _errorMessage;
   String? _statusHint;
   SellerProfile? _profile;
-
+  void _openUserProfile(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => UserProfile(
+        username: widget.session.username.isNotEmpty
+            ? widget.session.username
+            : widget.session.email,
+        email: widget.session.email,
+        onEditProfile: () {
+          Navigator.pop(context);
+          ProfileHandler.onEditProfile(context, widget.session);
+        },
+        onChangePassword: () {
+          Navigator.pop(context);
+          ProfileHandler.onChangePassword(context, widget.session);
+        },
+        onLogout: () {
+          Navigator.pop(context);
+          ProfileHandler.onLogout(context, widget.onLogout);
+        },
+      ),
+    );
+  }
   @override
   void initState() {
     super.initState();
@@ -33,54 +62,67 @@ class _SellerHomePageState extends State<SellerHomePage> {
   }
 
   Future<void> _loadSellerData() async {
+  setState(() {
+    _isLoading = true;
+    _errorMessage = null;
+  });
+
+  try {
+    final me = await _sellerApiService.fetchSellerStatus(widget.session);
+    final dashboard =
+        await _sellerApiService.fetchSellerDashboard(widget.session);
+    final warehouse =
+        await _sellerApiService.fetchWarehouseAssignment(widget.session);
+    final productsCount =
+        await _sellerApiService.fetchMyProductsCount(widget.session);
+
+    final effectiveStatus =
+        dashboard.status != SellerStatus.none ? dashboard.status : me.status;
+
+    final merged = dashboard.copyWith(
+      id: me.id,
+      documentId: me.documentId,
+      storeName: me.storeName.isNotEmpty ? me.storeName : dashboard.storeName,
+      description: me.description,
+      contactPhone: me.contactPhone,
+      isVerified: me.isVerified,
+      address: me.address,
+      status: effectiveStatus,
+      productCount: dashboard.productCount ?? me.productCount ?? productsCount,
+      assignedWarehouse: warehouse.assignedWarehouse ?? me.assignedWarehouse,
+      warehouseAssignmentStatus:
+          warehouse.warehouseAssignmentStatus != WarehouseAssignmentStatus.none
+              ? warehouse.warehouseAssignmentStatus
+              : me.warehouseAssignmentStatus,
+      deliveryInstructions:
+          warehouse.deliveryInstructions ??
+          me.deliveryInstructions ??
+          dashboard.deliveryInstructions,
+      canCreateProducts:
+          dashboard.canCreateProducts ?? (effectiveStatus == SellerStatus.approved),
+      canDeliverToWarehouse:
+          dashboard.canDeliverToWarehouse ?? false,
+      canEditProfile:
+          dashboard.canEditProfile ?? true,
+    );
+
+    if (!mounted) return;
+
     setState(() {
-      _isLoading = true;
-      _errorMessage = null;
+      _profile = merged;
+      _statusHint = merged.deliveryInstructions ??
+          'Actualizamos la informacion mas reciente de tu cuenta.';
+      _isLoading = false;
     });
+  } catch (error) {
+    if (!mounted) return;
 
-    try {
-      final results = await Future.wait<SellerProfile>([
-        _sellerApiService.fetchSellerStatus(widget.session),
-        _sellerApiService.fetchSellerDashboard(widget.session),
-        _sellerApiService.fetchWarehouseAssignment(widget.session),
-      ]);
-      final productsCount =
-          await _sellerApiService.fetchMyProductsCount(widget.session);
-
-      final merged = results[0]
-          .copyWith(
-            productCount: results[1].productCount ?? productsCount,
-            canCreateProducts: results[1].canCreateProducts,
-            canDeliverToWarehouse: results[1].canDeliverToWarehouse,
-            canEditProfile: results[1].canEditProfile,
-          )
-          .copyWith(
-            assignedWarehouse: results[2].assignedWarehouse,
-            warehouseAssignmentStatus: results[2].warehouseAssignmentStatus,
-            deliveryInstructions: results[2].deliveryInstructions,
-          );
-
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _profile = merged;
-        _statusHint = merged.deliveryInstructions ??
-            'Actualizamos la informacion mas reciente de tu cuenta.';
-        _isLoading = false;
-      });
-    } catch (error) {
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _errorMessage = error.toString();
-        _isLoading = false;
-      });
-    }
+    setState(() {
+      _errorMessage = error.toString();
+      _isLoading = false;
+    });
   }
+}
 
   Future<void> _openProducts() async {
     await Navigator.of(context).push(
@@ -121,7 +163,15 @@ class _SellerHomePageState extends State<SellerHomePage> {
           'Mi tienda',
           style: TextStyle(fontWeight: FontWeight.w800),
         ),
+        
         actions: [
+          Padding(
+          padding: EdgeInsets.only(right: 16),
+          child: IconButton(
+            icon: const Icon(Icons.person_outline, color: Colors.white),
+            onPressed: () {_openUserProfile(context);},
+          ),
+        ),
           IconButton(
             onPressed: _isLoading ? null : _loadSellerData,
             icon: const Icon(Icons.refresh_rounded),

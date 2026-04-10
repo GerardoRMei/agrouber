@@ -59,7 +59,7 @@ class HeroSection extends StatelessWidget {
                   border: Border.all(color: const Color(0xFF6F685E)),
                 ),
                 child: const Text(
-                  'APP NAME',
+                  'AgroRun',
                   style: TextStyle(
                     color: Color(0xFFE5DED2),
                     fontSize: 11,
@@ -72,7 +72,7 @@ class HeroSection extends StatelessWidget {
           ),
           SizedBox(height: isMobile ? 26 : 42),
           Text(
-            'Welcome back',
+            'Bienvenido de vuelta a AgroRun',
             style: TextStyle(
               fontSize: isMobile ? 34 : 48,
               height: 1.0,
@@ -84,7 +84,7 @@ class HeroSection extends StatelessWidget {
           ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 420),
             child: Text(
-              'Sign in to manage orders, review purchases, and connect directly with agricultural producers.',
+              'Inicia sesión para gestionar pedidos, revisar compras y conectarte directamente con productores agrícolas.',
               style: TextStyle(
                 fontSize: isMobile ? 14 : 16,
                 height: 1.6,

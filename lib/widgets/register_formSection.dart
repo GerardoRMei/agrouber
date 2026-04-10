@@ -80,13 +80,13 @@
       switch (_passwordStrength) {
         case 0:
         case 1:
-          return 'Weak password — use more characters';
+          return 'Contraseña débil — usa más caracteres';
         case 2:
-          return 'Medium strength — add numbers to strengthen';
+          return 'Fuerza media — añade números para fortalecer';
         case 3:
-          return 'Medium strength — add symbols to strengthen';
+          return 'Fuerza media — añade símbolos para fortalecer';
         case 4:
-          return 'Strong password';
+          return 'Contraseña fuerte';
         default:
           return '';
       }
@@ -95,7 +95,7 @@
     Future<void> _submit() async {
       if (!_acceptedTerms) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('You must accept the terms to continue.')),
+          const SnackBar(content: Text('Debes aceptar los términos para continuar.')),
         );
         return;
       }
@@ -103,7 +103,7 @@
       if (_selectedRole == RegisterRole.rider) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Public registration for riders is not available yet.'),
+            content: Text('El registro público para repartidores no está disponible aún.'),
           ),
         );
         return;
@@ -134,8 +134,8 @@
 
         final message = payload['message']?.toString() ??
     (_isSeller
-        ? 'Seller registration submitted successfully.'
-        : 'Account created successfully.');
+        ? 'Registro de vendedor enviado con éxito.'
+        : 'Cuenta creada con éxito.');
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(message)),
@@ -156,7 +156,7 @@
       } catch (_) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Unexpected error.')),
+          const SnackBar(content: Text('Error inesperado.')),
         );
       } finally {
         if (mounted) {
@@ -226,9 +226,9 @@
                             fontSize: 12,
                           ),
                           children: [
-                            const TextSpan(text: 'Already have an account? '),
+                            const TextSpan(text: '¿Ya tienes una cuenta? '),
                             TextSpan(
-                              text: 'Sign in',
+                              text: 'Inicia sesión',
                               style: GoogleFonts.inter(
                                 color: const Color(0xFF172A18),
                                 fontWeight: FontWeight.w700,
@@ -252,7 +252,7 @@
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Create Account',
+            'Crear Cuenta',
             style: GoogleFonts.dmSerifDisplay(
               color: const Color(0xFF151515),
               fontSize: isMobile ? 24 : 54,
@@ -261,7 +261,7 @@
           ),
           const SizedBox(height: 6),
           Text(
-            'Fill in your details to get started',
+            'Completa tus datos para comenzar',
             style: GoogleFonts.inter(
               color: const Color(0xFFA7A29A),
               fontSize: isMobile ? 12 : 17,
@@ -277,7 +277,7 @@
           Expanded(
             child: RegisterInput(
               compact: isMobile,
-              label: 'FIRST NAME',
+              label: 'NOMBRE',
               hint: 'María',
               icon: Icons.person_outline_rounded,
               controller: _firstNameCtrl,
@@ -288,7 +288,7 @@
           Expanded(
             child: RegisterInput(
               compact: isMobile,
-              label: 'LAST NAME',
+              label: 'APELLIDO',
               hint: 'García',
               icon: Icons.person_outline_rounded,
               controller: _lastNameCtrl,
@@ -302,7 +302,7 @@
     Widget _buildEmailField() {
       return RegisterInput(
         compact: isMobile,
-        label: 'EMAIL',
+        label: 'CORREO ELECTRÓNICO',
         hint: 'your@example.com',
         icon: Icons.email_outlined,
         controller: _emailCtrl,
@@ -314,7 +314,7 @@
     Widget _buildPhoneField() {
       return RegisterInput(
         compact: isMobile,
-        label: 'PHONE',
+        label: 'TELÉFONO',
         hint: '+52 55 0000 0000',
         icon: Icons.phone_android_outlined,
         controller: _phoneCtrl,
@@ -326,8 +326,8 @@
     Widget _buildPasswordField() {
       return RegisterInput(
         compact: isMobile,
-        label: 'PASSWORD',
-        hint: 'Min. 8 characters',
+        label: 'CONTRASEÑA',
+        hint: 'Mín. 8 caracteres',
         icon: Icons.lock_outline_rounded,
         controller: _passwordCtrl,
         obscureText: _obscurePassword,
@@ -347,8 +347,8 @@
           ),
         ),
         validator: (v) {
-          if (v == null || v.isEmpty) return 'Required';
-          if (v.length < 8) return 'Minimum 8 characters';
+          if (v == null || v.isEmpty) return 'Requerido';
+          if (v.length < 8) return 'Mínimo 8 caracteres';
           return null;
         },
       );
@@ -359,7 +359,7 @@
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'I AM A...',
+            'SOY UN...',
             style: GoogleFonts.inter(
               color: const Color(0xFF111111),
               fontSize: isMobile ? 12 : 14,
@@ -373,7 +373,7 @@
               Expanded(
                 child: RegisterRoleCard(
                   compact: isMobile,
-                  title: 'Buyer',
+                  title: 'Comprador',
                   emoji: '🛒',
                   selected: _selectedRole == RegisterRole.buyer,
                   onTap: () => _onRoleSelected(RegisterRole.buyer),
@@ -383,22 +383,23 @@
               Expanded(
                 child: RegisterRoleCard(
                   compact: isMobile,
-                  title: 'Producer',
+                  title: 'Productor',
                   emoji: '🌾',
                   selected: _selectedRole == RegisterRole.producer,
                   onTap: () => _onRoleSelected(RegisterRole.producer),
                 ),
               ),
+              /*
               const SizedBox(width: 8),
               Expanded(
                 child: RegisterRoleCard(
                   compact: isMobile,
-                  title: 'Rider',
+                  title: 'Repartidor',
                   emoji: '🛵',
                   selected: _selectedRole == RegisterRole.rider,
                   onTap: () => _onRoleSelected(RegisterRole.rider),
                 ),
-              ),
+              ),*/
             ],
           ),
         ],
@@ -406,21 +407,21 @@
     }
 
     String? _requiredValidator(String? value) {
-      if (value == null || value.trim().isEmpty) return 'Required';
+      if (value == null || value.trim().isEmpty) return 'Requerido';
       return null;
     }
 
     String? _emailValidator(String? value) {
-      if (value == null || value.trim().isEmpty) return 'Required';
+      if (value == null || value.trim().isEmpty) return 'Requerido';
       if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value.trim())) {
-        return 'Enter a valid email';
+        return 'Ingresa un correo válido';
       }
       return null;
     }
     Widget _buildUsernameField() {
     return RegisterInput(
       compact: isMobile,
-      label: 'USERNAME',
+      label: 'USUARIO',
       hint: 'MariaGar',
       icon: Icons.alternate_email_rounded,
       controller: _usernameCtrl,
@@ -434,7 +435,7 @@
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'SELLER INFORMATION',
+          'INFORMACIÓN DEL VENDEDOR',
           style: GoogleFonts.inter(
             color: const Color(0xFF111111),
             fontSize: isMobile ? 12 : 14,
@@ -445,8 +446,8 @@
         const SizedBox(height: 8),
         Text(
           enabled
-              ? 'Complete these fields to register as a seller.'
-              : 'These fields are only enabled when you select Producer.',
+              ? 'Completa estos campos para registrarte como vendedor.'
+              : 'Estos campos solo se habilitan al seleccionar Productor.',
           style: GoogleFonts.inter(
             color: const Color(0xFFA7A29A),
             fontSize: isMobile ? 11 : 13,
@@ -462,14 +463,14 @@
               children: [
                 RegisterInput(
                   compact: isMobile,
-                  label: 'STORE NAME',
+                  label: 'NOMBRE DE LA TIENDA',
                   hint: 'Mi Tienda',
                   icon: Icons.storefront_outlined,
                   controller: _storeNameCtrl,
                   validator: (value) {
                     if (!_isSeller) return null;
                     if (value == null || value.trim().isEmpty) {
-                      return 'Required for seller';
+                      return 'Requerido para vendedor';
                     }
                     return null;
                   },
@@ -477,7 +478,7 @@
                 SizedBox(height: isMobile ? 14 : 18),
                 RegisterInput(
                   compact: isMobile,
-                  label: 'CONTACT PHONE',
+                  label: 'TELÉFONO DE CONTACTO',
                   hint: '+52 55 0000 0000',
                   icon: Icons.phone_outlined,
                   controller: _contactPhoneCtrl,
@@ -485,7 +486,7 @@
                   validator: (value) {
                     if (!_isSeller) return null;
                     if (value == null || value.trim().isEmpty) {
-                      return 'Required for seller';
+                      return 'Requerido para vendedor';
                     }
                     return null;
                   },
@@ -493,7 +494,7 @@
                 SizedBox(height: isMobile ? 14 : 18),
                 RegisterInput(
                   compact: isMobile,
-                  label: 'DESCRIPTION',
+                  label: 'DESCRIPCIÓN',
                   hint: 'Frutas y verduras',
                   icon: Icons.description_outlined,
                   controller: _descriptionCtrl,

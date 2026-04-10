@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
-import '../pages/seller_home_page.dart';
 import '../data/api_client.dart';
 import '../models/auth_session.dart';
-import '../pages/buyer_home_page.dart';
 import '../pages/register_page.dart';
-import '../pages/rider_page.dart';
 import 'login_textFields.dart';
 
 class FormSection extends StatefulWidget {
@@ -72,7 +69,6 @@ class _FormSectionState extends State<FormSection> {
       }
 
       widget.onLoginSuccess(session);
-      _redirectByRole(session);
     } on ApiException catch (error) {
       if (!mounted) {
         return;
@@ -98,29 +94,6 @@ class _FormSectionState extends State<FormSection> {
     }
   }
 
-  void _redirectByRole(AuthSession session) {
-    late final Widget page;
-
-    switch (session.role) {
-      case 'delivery':
-        page = RiderPage(session: session);
-        break;
-      case 'seller':
-        page = SellerHomePage(session: session);
-        break;
-      case 'customer':
-      default:
-        page = BuyerHomePage(session: session);
-        break;
-    }
-
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute<void>(
-        builder: (_) => page,
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -137,7 +110,7 @@ class _FormSectionState extends State<FormSection> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Log In',
+            'Iniciar sesión',
             style: TextStyle(
               fontSize: widget.isMobile ? 30 : 40,
               fontWeight: FontWeight.w800,
@@ -146,7 +119,7 @@ class _FormSectionState extends State<FormSection> {
           ),
           const SizedBox(height: 6),
           const Text(
-            'Enter your credentials to continue',
+            'Ingresa tus credenciales para continuar',
             style: TextStyle(
               fontSize: 14,
               color: Color(0xFF8F877C),
@@ -171,7 +144,7 @@ class _FormSectionState extends State<FormSection> {
           ),
           const SizedBox(height: 20),
           const Text(
-            'PASSWORD',
+            'CONTRASEÑA',
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w700,
@@ -226,7 +199,7 @@ class _FormSectionState extends State<FormSection> {
                       ),
                     )
                   : const Text(
-                      'Sign In ->',
+                      'Iniciar sesión',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
@@ -255,9 +228,9 @@ class _FormSectionState extends State<FormSection> {
                     fontSize: 14,
                   ),
                   children: [
-                    TextSpan(text: "Don't have an account? "),
+                    TextSpan(text: "¿No tienes una cuenta? "),
                     TextSpan(
-                      text: 'Create one',
+                      text: 'Crea una aquí',
                       style: TextStyle(
                         color: Color(0xFF2A1B10),
                         fontWeight: FontWeight.w800,
