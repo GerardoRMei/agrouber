@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:agrouber/models/product_unit.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 //import 'package:image_picker/image_picker.dart';
@@ -167,8 +168,6 @@ class ApiClient {
   }
   
 
-  /// Se conserva la versión actual para no romper BuyerHomePage ni
-  /// el modelo MarketplaceProduct que ya están funcionando.
   Future<List<MarketplaceProduct>> fetchMarketplaceProducts({
     required String authToken,
   }) async {
@@ -192,20 +191,16 @@ class ApiClient {
 
     for (final item in items) {
       final name = (item['name'] ?? '').toString().trim();
-      if (name.isEmpty) {
-        continue;
-      }
+      if (name.isEmpty) continue;
 
       final price = _asDouble(item['price']);
-      final category = _extractRelationName(
-        item['category'],
-        fallback: 'Sin categoria',
-      );
-      final sellerName = _extractRelationName(
-        item['seller'],
-        fallback: 'Sin vendedor',
-      );
-      final key = name.toLowerCase();
+      final category = _extractRelationName(item['category'], fallback: 'Sin categoria');
+      final sellerName = _extractRelationName(item['seller'], fallback: 'Sin vendedor');
+      
+      final unitString = (item['unit'] ?? '').toString();
+      final unitEnum = ProductUnit.fromString(unitString);
+      
+      final key = '${name.toLowerCase()}_${unitEnum.name}';
 
       final group = grouped.putIfAbsent(
         key,
@@ -213,31 +208,35 @@ class ApiClient {
           name: name,
           categoryName: category,
           visual: _iconFor(category, name),
+          unit: unitEnum,
         ),
       );
 
-      group.prices.add(price);
-      group.sellers.add(sellerName);
+      group.options.add(ProductOption(sellerName: sellerName, price: price));
     }
 
     return grouped.values.map((group) {
-      group.prices.sort();
+      group.options.sort((a, b) => a.price.compareTo(b.price));
 
-      final hasRange =
-          group.prices.isNotEmpty && group.prices.first != group.prices.last;
+      final hasRange = group.options.isNotEmpty && 
+                       group.options.first.price != group.options.last.price;
 
-      final priceDisplay = group.prices.isEmpty
+      final priceDisplay = group.options.isEmpty
           ? 'Sin precio'
           : hasRange
-              ? '\$${group.prices.first.toStringAsFixed(0)} - \$${group.prices.last.toStringAsFixed(0)}'
-              : '\$${group.prices.first.toStringAsFixed(0)}';
+              ? '\$${group.options.first.price.toStringAsFixed(0)} - \$${group.options.last.price.toStringAsFixed(0)} ${group.unit.suffix}'
+              : '\$${group.options.first.price.toStringAsFixed(0)} ${group.unit.suffix}';
+
+      final uniqueSellers = group.options.map((o) => o.sellerName).toSet().length;
 
       return MarketplaceProduct(
         name: group.name,
         categoryName: group.categoryName,
         priceDisplay: priceDisplay,
-        sellerCount: group.sellers.length,
+        sellerCount: uniqueSellers,
         visual: group.visual,
+        options: group.options,
+        unit: group.unit,
       );
     }).toList();
   }
@@ -540,15 +539,16 @@ class ApiException implements Exception {
 }
 
 class _GroupedProduct {
+  final String name;
+  final String categoryName;
+  final String visual;
+  final ProductUnit unit;
+  final List<ProductOption> options = [];
+
   _GroupedProduct({
     required this.name,
     required this.categoryName,
     required this.visual,
+    required this.unit,
   });
-
-  final String name;
-  final String categoryName;
-  final String visual;
-  final List<double> prices = <double>[];
-  final Set<String> sellers = <String>{};
 }

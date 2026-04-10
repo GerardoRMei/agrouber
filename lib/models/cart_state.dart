@@ -1,29 +1,43 @@
+import 'package:agrouber/models/marketplace_product.dart';
 import 'package:flutter/material.dart';
-import 'marketplace_product.dart';
 
 class CartItem {
   final MarketplaceProduct product;
-  int quantity;
+  final ProductOption option;
+  double quantity;
+  String unitLabel;
+  double finalPrice;
 
-  CartItem({required this.product, this.quantity = 1});
+  CartItem({
+    required this.product,
+    required this.option,
+    required this.quantity,
+    required this.unitLabel,
+    required this.finalPrice,
+  });
 }
 
 class CartState extends ChangeNotifier {
   final List<CartItem> _items = [];
 
   List<CartItem> get items => _items;
+  int get totalItems => _items.length;
 
-  int get totalItems => _items.fold(0, (sum, item) => sum + item.quantity);
-
-  void addProduct(MarketplaceProduct product) {
-    // Si el producto ya está, aumentamos la cantidad
-    final index = _items.indexWhere((item) => item.product.name == product.name);
-    if (index >= 0) {
-      _items[index].quantity++;
-    } else {
-      _items.add(CartItem(product: product));
-    }
+  void addProduct({
+    required MarketplaceProduct product,
+    required ProductOption option,
+    required double quantity,
+    required String unitLabel,
+    required double finalPrice,
+  }) {
+    _items.add(CartItem(
+      product: product,
+      option: option,
+      quantity: quantity,
+      unitLabel: unitLabel,
+      finalPrice: finalPrice,
+    ));
     
-    notifyListeners(); 
+    notifyListeners();
   }
 }

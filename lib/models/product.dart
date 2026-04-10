@@ -1,8 +1,10 @@
+import 'package:agrouber/models/product_unit.dart';
+
 class Product {
   final String name;
   final String producer;
   final String price;
-  final String unit;
+  final ProductUnit unit;
   final String image;
   final String tag;
   final String category;

@@ -1,3 +1,4 @@
+import 'package:agrouber/widgets/add_to_cart_modal.dart';
 import 'package:agrouber/widgets/cart_panel.dart';
 import 'package:flutter/material.dart';
 import '../data/api_client.dart';
@@ -204,7 +205,6 @@ class _BuyerHomePageState extends State<BuyerHomePage> {
     List<MarketplaceProduct> products,
     BoxConstraints constraints,
   ) {
-
     final bool isMobile = constraints.maxWidth <= 800;
     if (products.isEmpty) {
       return const Center(
@@ -234,16 +234,34 @@ class _BuyerHomePageState extends State<BuyerHomePage> {
           sellerCount: product.sellerCount,
           isMobile: isMobile,
           onAddToCart: () {
-            _cartState.addProduct(product);
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('${product.name} agregado al carrito'),
-                backgroundColor: const Color(0xFF4A7A4D),
-                behavior: SnackBarBehavior.floating,
-                duration: const Duration(seconds: 2),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
+            showModalBottomSheet(
+              context: context,
+              isScrollControlled: true,
+              backgroundColor: const Color(0xFFF3F0EA),
+              shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              builder: (context) => AddToCartModal(
+                product: product,
+                onAddToCart: (option, quantity, unitLabel, finalPrice) {
+                  _cartState.addProduct(
+                    product: product,
+                    option: option,
+                    quantity: quantity,
+                    unitLabel: unitLabel,
+                    finalPrice: finalPrice,
+                  );
+                  Navigator.pop(context);
+                  
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('${quantity.toStringAsFixed(0)} $unitLabel de ${product.name} agregado.'),
+                      backgroundColor: const Color(0xFF4A7A4D),
+                      behavior: SnackBarBehavior.floating,
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
+                },
               ),
             );
           },
