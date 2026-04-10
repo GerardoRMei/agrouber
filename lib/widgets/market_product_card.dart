@@ -6,7 +6,7 @@ class MarketProductCard extends StatelessWidget {
   final String priceDisplay;
   final int sellerCount;
   final VoidCallback? onAddToCart;
-  final bool isMobile; // NUEVO: Determina si el diseño debe ser compacto
+  final bool isMobile;
 
   const MarketProductCard({
     super.key,
@@ -15,16 +15,14 @@ class MarketProductCard extends StatelessWidget {
     required this.priceDisplay,
     required this.sellerCount,
     this.onAddToCart,
-    this.isMobile = false, // Por defecto es false
+    this.isMobile = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    // Si es móvil, mostramos un diseño de lista horizontal (compacto)
     if (isMobile) {
       return _buildCompactCard();
     }
-    // Si es escritorio/tablet, mostramos el diseño de cuadrícula vertical
     return _buildGridCard();
   }
 
@@ -47,7 +45,6 @@ class MarketProductCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // Imagen a la izquierda
           Container(
             width: 120,
             decoration: const BoxDecoration(
@@ -61,7 +58,6 @@ class MarketProductCard extends StatelessWidget {
               ),
             ),
           ),
-          // Información a la derecha
           Expanded(
             child: Padding(
               padding: const EdgeInsets.all(12.0),
@@ -220,7 +216,6 @@ class MarketProductCard extends StatelessWidget {
     );
   }
 
-  // Extraje el botón porque se repite en ambos diseños
   Widget _buildAddButton() {
     return InkWell(
       onTap: onAddToCart,
