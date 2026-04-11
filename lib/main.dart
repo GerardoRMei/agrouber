@@ -58,7 +58,7 @@ class _CampoAppState extends State<CampoApp> {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Campo',
+      title: 'Agrorun',
       theme: ThemeData(
         useMaterial3: true,
         scaffoldBackgroundColor: const Color(0xFFF3F0EA),
