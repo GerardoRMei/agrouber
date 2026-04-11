@@ -119,6 +119,7 @@ class _BuyerHomePageState extends State<BuyerHomePage> {
         child: CartPanel(
           cartState: _cartState,
           isDrawer: true,
+          session: widget.session,
         ),
       ),
       body: LayoutBuilder(

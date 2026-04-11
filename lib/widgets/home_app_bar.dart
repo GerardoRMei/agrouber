@@ -5,13 +5,10 @@ import '../models/auth_session.dart';
 import 'UserProfile.dart';
 import '../models/profile_handling.dart';
 
-
-
 class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
   final CartState cartState;
   final AuthSession session;
   final VoidCallback onLogout;
-
 
   const HomeAppBar({
     super.key,
@@ -74,7 +71,11 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
           icon: const Icon(Icons.home_rounded, color: Colors.white),
           onPressed: () {},
         ),
-        _CartAction(cartState: cartState),
+        // Le pasamos la sesión a _CartAction
+        _CartAction(
+          cartState: cartState, 
+          session: session,
+        ),
         Padding(
           padding: EdgeInsets.only(right: hPadding),
           child: IconButton(
@@ -92,8 +93,12 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
 
 class _CartAction extends StatelessWidget {
   final CartState cartState;
+  final AuthSession session; // NUEVO: Añadimos la sesión aquí
   
-  const _CartAction({required this.cartState});
+  const _CartAction({
+    required this.cartState,
+    required this.session, // Requerimos la sesión en el constructor
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -137,7 +142,10 @@ class _CartAction extends StatelessWidget {
                 context: scaffoldContext,
                 isScrollControlled: true,
                 backgroundColor: Colors.transparent,
-                builder: (context) => CartPanel(cartState: cartState),
+                builder: (context) => CartPanel(
+                  cartState: cartState,
+                  session: session, // Pasamos la sesión al CartPanel móvil
+                ),
               );
             } else {
               Scaffold.of(scaffoldContext).openEndDrawer();

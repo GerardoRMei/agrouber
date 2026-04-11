@@ -1,3 +1,4 @@
+import 'package:agrouber/models/auth_session.dart';
 import 'package:agrouber/pages/checkout_page.dart';
 import 'package:flutter/material.dart';
 import '../models/cart_state.dart';
@@ -5,10 +6,12 @@ import '../models/cart_state.dart';
 class CartPanel extends StatelessWidget {
   final CartState cartState;
   final bool isDrawer;
+  final AuthSession session;
 
   const CartPanel({
     super.key,
     required this.cartState,
+    required this.session,
     this.isDrawer = false,
   });
 
@@ -189,7 +192,7 @@ class CartPanel extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => CheckoutPage(cartState: cartState),
+                          builder: (context) => CheckoutPage(cartState: cartState, session: session,),
                         ),
                       );
                     },

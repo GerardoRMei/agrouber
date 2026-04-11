@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:agrouber/models/order.dart';
 import 'package:agrouber/models/product_unit.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
@@ -196,7 +197,8 @@ class ApiClient {
       final price = _asDouble(item['price']);
       final category = _extractRelationName(item['category'], fallback: 'Sin categoria');
       final sellerName = _extractRelationName(item['seller'], fallback: 'Sin vendedor');
-      
+      final sellerId = _extractRelationId(item["seller"], fallback: 0);
+
       final unitString = (item['unit'] ?? '').toString();
       final unitEnum = ProductUnit.fromString(unitString);
       
@@ -212,7 +214,12 @@ class ApiClient {
         ),
       );
 
-      group.options.add(ProductOption(sellerName: sellerName, price: price));
+      // NUEVO: Pasamos el sellerId a la opción
+      group.options.add(ProductOption(
+        sellerName: sellerName, 
+        sellerId: sellerId, 
+        price: price
+      ));
     }
 
     return grouped.values.map((group) {
@@ -352,6 +359,91 @@ class ApiClient {
     return _handleDynamicResponse(response);
   }
 
+  Future<List<Order>> fetchMyOrders({
+    required String authToken,
+    required int userId,
+  }) async {
+    final payload = await getJson(
+      '/api/orders',
+      authToken: authToken,
+      queryParameters: {
+        'filters[customer][id][\$eq]': userId.toString(),
+        'populate[0]': 'items',
+        'populate[1]': 'address',
+        'populate[2]': 'deliveryAssignment',
+        'sort': 'createdAt:desc',
+        'pagination[pageSize]': '50',
+      },
+    );
+
+    final items = (payload['data'] as List<dynamic>? ?? <dynamic>[])
+        .whereType<Map<String, dynamic>>();
+
+    return items.map((json) => Order.fromJson(json)).toList();
+  }
+
+  Future<Order> createOrder({
+    required String authToken,
+    required Map<String, dynamic> orderData,
+  }) async {
+    final payload = await postJson(
+      '/api/orders',
+      authToken: authToken,
+      body: {
+        'data': orderData,
+      },
+    );
+
+    final data = payload['data'];
+    
+    if (data == null) {
+      throw const ApiException('No se pudo procesar la orden en el servidor.');
+    }
+
+    return Order.fromJson(data as Map<String, dynamic>);
+  }
+
+  Future<int> createAddress({
+    required String authToken,
+    required Map<String, dynamic> addressData,
+  }) async {
+    final payload = await postJson(
+      '/api/adresses',
+      authToken: authToken,
+      body: {
+        'data': addressData,
+      },
+    );
+
+    final data = payload['data'];
+    if (data == null) {
+      throw const ApiException('No se pudo guardar la dirección.');
+    }
+
+    return (data['id'] as num).toInt();
+  }
+
+  /// Crea un OrderItem individual y retorna su ID
+  Future<int> createOrderItem({
+    required String authToken,
+    required Map<String, dynamic> itemData,
+  }) async {
+    final payload = await postJson(
+      '/api/order-items', // Asegúrate de que este sea el endpoint correcto en tu Strapi
+      authToken: authToken,
+      body: {
+        'data': itemData,
+      },
+    );
+
+    final data = payload['data'];
+    if (data == null) {
+      throw const ApiException('No se pudo guardar un producto de la orden.');
+    }
+
+    return (data['id'] as num).toInt(); // Retornamos el ID generado
+  }
+
 /*
   Future<List<Map<String, dynamic>>> uploadFiles(
     String path, {
@@ -479,6 +571,17 @@ class ApiClient {
       final name = relation['name'] ?? relation['storeName'];
       if (name != null && name.toString().trim().isNotEmpty) {
         return name.toString();
+      }
+    }
+
+    return fallback;
+  }
+
+  int _extractRelationId(dynamic relation, {required int fallback}) {
+    if (relation is Map<String, dynamic>) {
+      final relationId = relation['id'];
+      if (relationId != null && relationId.toString().trim().isNotEmpty) {
+        return relationId.toInt();
       }
     }
 

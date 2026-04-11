@@ -1,11 +1,13 @@
 import 'package:agrouber/models/product_unit.dart';
 
 class ProductOption {
+  final int sellerId;
   final String sellerName;
   final double price;
 
   const ProductOption({
     required this.sellerName,
+    required this.sellerId,
     required this.price,
   });
 }

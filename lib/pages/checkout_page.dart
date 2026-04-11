@@ -1,16 +1,24 @@
+import 'package:agrouber/data/api_client.dart';
+import 'package:agrouber/models/auth_session.dart';
 import 'package:flutter/material.dart';
 import '../models/cart_state.dart';
 
 class CheckoutPage extends StatefulWidget {
   final CartState cartState;
+  final AuthSession session;
 
-  const CheckoutPage({super.key, required this.cartState});
+  const CheckoutPage({
+    super.key, 
+    required this.cartState,
+    required this.session,
+  });
 
   @override
   State<CheckoutPage> createState() => _CheckoutPageState();
 }
 
 class _CheckoutPageState extends State<CheckoutPage> {
+  final ApiClient _apiClient = ApiClient();
   int _selectedPaymentMethod = 0;
   final double _deliveryFee = 45.00;
   bool _isEditingAddress = false;
@@ -55,7 +63,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
     super.dispose();
   }
 
-  void _processOrder() {
+  void _processOrder() async {
+    // 1. Mostrar loader de carga
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -64,41 +73,123 @@ class _CheckoutPageState extends State<CheckoutPage> {
       ),
     );
 
-    Future.delayed(const Duration(seconds: 2), () {
-      Navigator.pop(context); // Ocultar loader
-      widget.cartState.clearCart();
+    try {
+      // Calcular totales
+      double subtotal = 0.0;
+      for (var item in widget.cartState.items) {
+        subtotal += item.finalPrice;
+      }
+      final double total = subtotal + _deliveryFee;
 
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-          icon: const Icon(Icons.check_circle, color: Color(0xFF4A7A4D), size: 64),
-          title: const Text('¡Pedido Confirmado!', style: TextStyle(fontWeight: FontWeight.bold)),
-          content: const Text(
-            'Tu pedido ha sido recibido por los productores y está siendo preparado para su envío.',
-            textAlign: TextAlign.center,
-          ),
-          actions: [
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF2E4F2F),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                ),
-                onPressed: () {
-                  Navigator.pop(context); // Cierra diálogo
-                  Navigator.pop(context); // Regresa a Home
-                },
-                child: const Text('Volver al inicio', style: TextStyle(color: Colors.white, fontSize: 16)),
-              ),
-            )
-          ],
+      // 2. Manejar la dirección (Si está editando, guardamos la nueva en Strapi)
+      int? addressId;
+      if (_isEditingAddress) {
+        addressId = await _apiClient.createAddress(
+          authToken: widget.session.jwt,
+          addressData: {
+            'label': 'Nueva Dirección',
+            'recipientName': _receiverNameController.text.trim(),
+            'street': _streetNameController.text.trim(),
+            'externalNumber': _extNumberController.text.trim(),
+            'internalNumber': _intNumberController.text.trim(),
+            'neighborhood': _neighborhoodController.text.trim(),
+            'city': _cityController.text.trim(),
+            'state': _stateController.text.trim(),
+            'zipCode': _zipCodeController.text.trim(),
+            'phone': _phoneController.text.trim(),
+            'references': _referencesController.text.trim(),
+            // Strapi normalmente relaciona automáticamente al usuario creador si la API está protegida, 
+            // pero si tu backend requiere el ID manual, puedes pasarlo así:
+            // 'user': widget.session.user?.id, 
+          },
+        );
+      }
+
+      // 3. Crear cada OrderItem en el backend y recolectar sus IDs
+      List<int> orderItemIds = [];
+      
+      for (var item in widget.cartState.items) {
+        final itemId = await _apiClient.createOrderItem(
+          authToken: widget.session.jwt,
+          itemData: {
+            'productNameSnapshot': item.product.name,
+            'seller': item.option.sellerId,
+            'quantity': item.quantity,
+            'unitSnapshot': item.unitLabel,
+            'unit_price': item.option.price,
+            'subtotal': item.finalPrice,
+          },
+        );
+        orderItemIds.add(itemId); // Guardamos el ID que Strapi nos devolvió
+      }
+
+      // 4. Crear la Orden vinculando los IDs recolectados
+      await _apiClient.createOrder(
+        authToken: widget.session.jwt,
+        orderData: {
+          'statusOrder': 'pending', 
+          'payment_status': _selectedPaymentMethod == 0 ? 'pending' : 'paid',
+          'subtotal': subtotal,
+          'deliveryFee': _deliveryFee,
+          'total': total,
+          // Strapi ahora recibirá un arreglo de IDs: ej. [12, 13, 14]
+          'items': orderItemIds, 
+          
+          if (addressId != null) 'address': addressId,
+        },
+      );
+
+      if (!mounted) return;
+      Navigator.pop(context); // Cierra el loader
+
+      // 5. Éxito: Vaciar carrito y mostrar mensaje final
+      widget.cartState.clearCart();
+      _showSuccessDialog();
+
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.pop(context); // Cierra el loader en caso de error
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('No pudimos procesar tu orden: $e'),
+          backgroundColor: Colors.redAccent,
         ),
       );
-    });
+    }
+  }
+
+  // Extraje el diálogo de éxito a su propia función para mantener limpio el código
+  void _showSuccessDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        icon: const Icon(Icons.check_circle, color: Color(0xFF4A7A4D), size: 64),
+        title: const Text('¡Pedido Confirmado!', style: TextStyle(fontWeight: FontWeight.bold)),
+        content: const Text(
+          'Tu pedido ha sido recibido por los productores y está siendo preparado para su envío.',
+          textAlign: TextAlign.center,
+        ),
+        actions: [
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF2E4F2F),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                padding: const EdgeInsets.symmetric(vertical: 16),
+              ),
+              onPressed: () {
+                Navigator.pop(context); // Cierra el diálogo
+                Navigator.pop(context); // Regresa al Home
+              },
+              child: const Text('Volver al inicio', style: TextStyle(color: Colors.white, fontSize: 16)),
+            ),
+          )
+        ],
+      ),
+    );
   }
 
   bool get _isPaymentValid {
