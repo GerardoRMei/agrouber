@@ -40,12 +40,11 @@ class HeroSection extends StatelessWidget {
                   border: Border.all(color: const Color(0xFF6F685E)),
                 ),
                 child: const Center(
-                  child: Text(
-                    'LOGO',
-                    style: TextStyle(
-                      color: Color(0xFFE5DED2),
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
+                  child: Padding(
+                    padding: EdgeInsets.all(10),
+                    child: Image(
+                      image: AssetImage('logoAgrorun.png'),
+                      fit: BoxFit.contain,
                     ),
                   ),
                 ),

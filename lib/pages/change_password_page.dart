@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/auth_session.dart';
+import '../data/api_client.dart';
 
 class ChangePasswordPage extends StatefulWidget {
   final AuthSession session;
@@ -21,6 +22,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
   bool _hideCurrent = true;
   bool _hideNew = true;
   bool _hideConfirm = true;
+  bool _isSaving = false;
 
   @override
   void dispose() {
@@ -30,10 +32,14 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
     super.dispose();
   }
 
-  void _savePassword() {
+  Future<void> _savePassword() async {
     if (!_formKey.currentState!.validate()) return;
 
-    if(_currentPasswordCtrl.text.trim() == _newPasswordCtrl.text.trim()){
+    final current = _currentPasswordCtrl.text.trim();
+    final next = _newPasswordCtrl.text.trim();
+    final confirm = _confirmPasswordCtrl.text.trim();
+
+    if (current == next) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('La contraseña nueva no puede ser igual a la actual.'),
@@ -42,15 +48,53 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
       return;
     }
 
-    
+    if (next != confirm) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Las contraseñas no coinciden.'),
+        ),
+      );
+      return;
+    }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Contraseña actualizada.'),
-      ),
-    );
+    setState(() => _isSaving = true);
 
-    Navigator.pop(context);
+    try {
+
+      await ApiClient().changeMyPassword(
+        authToken: widget.session.jwt,
+        currentPassword: current,
+        newPassword: next,
+      );
+
+      if (!mounted) return;
+
+      widget.onPasswordChanged?.call();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Contraseña actualizada correctamente.'),
+        ),
+      );
+
+      Navigator.pop(context);
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No se pudo actualizar la contraseña.'),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
+    }
   }
 
   int get _passwordStrength {
@@ -230,15 +274,20 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                             const SizedBox(width: 12),
                             Expanded(
                               child: ElevatedButton(
-                                onPressed: _savePassword,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFFE09A2C),
-                                  foregroundColor: Colors.white,
-                                  padding:
-                                      const EdgeInsets.symmetric(vertical: 16),
-                                ),
-                                child: const Text('Actualizar'),
+                              onPressed: _isSaving ? null : _savePassword,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFFE09A2C),
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(vertical: 16),
                               ),
+                              child: _isSaving
+                                  ? const SizedBox(
+                                      height: 20,
+                                      width: 20,
+                                      child: CircularProgressIndicator(strokeWidth: 2),
+                                    )
+                                  : const Text('Actualizar'),
+                              )
                             ),
                           ],
                         ),

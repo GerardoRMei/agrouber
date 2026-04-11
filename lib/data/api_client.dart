@@ -241,6 +241,23 @@ class ApiClient {
     }).toList();
   }
 
+
+  Future<void> changeMyPassword({
+    required String authToken,
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    await postDynamic(
+      '/api/auth/change-password',
+      authToken: authToken,
+      body: {
+        'currentPassword': currentPassword,
+        'password': newPassword,
+        'passwordConfirmation': newPassword,
+      },
+    );
+  }
+
   Future<Map<String, dynamic>> getJson(
     String path, {
     Map<String, String>? queryParameters,
