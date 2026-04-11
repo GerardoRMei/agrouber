@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import '../data/seller_api_service.dart';
 import '../models/auth_session.dart';
 import '../models/seller_profile.dart';
+import '../models/seller_sales_metrics.dart';
 import 'seller_product_form_page.dart';
 import 'seller_products_page.dart';
+import 'seller_sales_page.dart';
 import '../widgets/UserProfile.dart';
 import '../models/profile_handling.dart';
 
@@ -30,6 +32,7 @@ class _SellerHomePageState extends State<SellerHomePage> {
   String? _errorMessage;
   String? _statusHint;
   SellerProfile? _profile;
+  SellerSalesMetrics? _salesMetrics;
   void _openUserProfile(BuildContext context) {
     showModalBottomSheet(
       context: context,
@@ -75,6 +78,18 @@ class _SellerHomePageState extends State<SellerHomePage> {
         await _sellerApiService.fetchWarehouseAssignment(widget.session);
     final productsCount =
         await _sellerApiService.fetchMyProductsCount(widget.session);
+    SellerSalesMetrics? metrics;
+    try {
+      final to = DateTime.now();
+      final from = to.subtract(const Duration(days: 30));
+      metrics = await _sellerApiService.fetchSalesMetrics(
+        widget.session,
+        from: _toIsoDate(from),
+        to: _toIsoDate(to),
+      );
+    } catch (_) {
+      metrics = null;
+    }
 
     final effectiveStatus =
         dashboard.status != SellerStatus.none ? dashboard.status : me.status;
@@ -110,6 +125,7 @@ class _SellerHomePageState extends State<SellerHomePage> {
 
     setState(() {
       _profile = merged;
+      _salesMetrics = metrics;
       _statusHint = merged.deliveryInstructions ??
           'Actualizamos la informacion mas reciente de tu cuenta.';
       _isLoading = false;
@@ -123,6 +139,13 @@ class _SellerHomePageState extends State<SellerHomePage> {
     });
   }
 }
+
+  String _toIsoDate(DateTime date) {
+    final year = date.year.toString().padLeft(4, '0');
+    final month = date.month.toString().padLeft(2, '0');
+    final day = date.day.toString().padLeft(2, '0');
+    return '$year-$month-$day';
+  }
 
   Future<void> _openProducts() async {
     await Navigator.of(context).push(
@@ -148,6 +171,14 @@ class _SellerHomePageState extends State<SellerHomePage> {
         const SnackBar(content: Text('Producto registrado correctamente.')),
       );
     }
+  }
+
+  Future<void> _openSales() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => SellerSalesPage(session: widget.session),
+      ),
+    );
   }
 
   @override
@@ -212,6 +243,10 @@ class _SellerHomePageState extends State<SellerHomePage> {
                   ),
                   const SizedBox(height: 24),
                   _SellerOverviewCard(profile: profile),
+                  if (_salesMetrics != null) ...[
+                    const SizedBox(height: 16),
+                    _SalesMetricsCard(metrics: _salesMetrics!),
+                  ],
                   if (_statusHint != null) ...[
                     const SizedBox(height: 16),
                     _InfoCard(message: _statusHint!),
@@ -256,7 +291,125 @@ class _SellerHomePageState extends State<SellerHomePage> {
           enabled: canCreateProducts,
           onTap: canCreateProducts ? _openCreateProduct : null,
         ),
+        _ActionCard(
+          title: 'Mis ventas',
+          description: canCreateProducts
+              ? 'Consulta lo que vendiste y revisa el historial de ordenes recibidas.'
+              : 'Esta opcion se habilita cuando approvalStatus sea approved.',
+          icon: Icons.point_of_sale_outlined,
+          enabled: canCreateProducts,
+          onTap: canCreateProducts ? _openSales : null,
+        ),
       ],
+    );
+  }
+}
+
+class _SalesMetricsCard extends StatelessWidget {
+  const _SalesMetricsCard({required this.metrics});
+
+  final SellerSalesMetrics metrics;
+
+  @override
+  Widget build(BuildContext context) {
+    final rangeLabel = metrics.from != null && metrics.to != null
+        ? 'Periodo: ${metrics.from} a ${metrics.to}'
+        : 'Periodo: ultimos 30 dias';
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF0F5EE),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Resumen de ventas',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              color: Color(0xFF1B3020),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            rangeLabel,
+            style: const TextStyle(
+              color: Color(0xFF58715A),
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 14),
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: [
+              _MetricPill(
+                label: 'Ordenes',
+                value: '${metrics.ordersCount}',
+              ),
+              _MetricPill(
+                label: 'Ingresos',
+                value: '\$${metrics.revenue.toStringAsFixed(2)}',
+              ),
+              _MetricPill(
+                label: 'Items vendidos',
+                value: '${metrics.itemsSold}',
+              ),
+              _MetricPill(
+                label: 'Ticket promedio',
+                value: '\$${metrics.averageTicket.toStringAsFixed(2)}',
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MetricPill extends StatelessWidget {
+  const _MetricPill({
+    required this.label,
+    required this.value,
+  });
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: const BoxConstraints(minWidth: 150),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 12,
+              color: Color(0xFF58715A),
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 18,
+              color: Color(0xFF1B3020),
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

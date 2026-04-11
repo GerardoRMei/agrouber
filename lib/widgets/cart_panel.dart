@@ -1,14 +1,19 @@
 import 'package:agrouber/pages/checkout_page.dart';
 import 'package:flutter/material.dart';
+import '../data/api_client.dart';
+import '../models/auth_session.dart';
 import '../models/cart_state.dart';
 
 class CartPanel extends StatelessWidget {
+  static final ApiClient _apiClient = ApiClient();
   final CartState cartState;
+  final AuthSession session;
   final bool isDrawer;
 
   const CartPanel({
     super.key,
     required this.cartState,
+    required this.session,
     this.isDrawer = false,
   });
 
@@ -82,7 +87,7 @@ class CartPanel extends StatelessWidget {
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Center(
-                              child: Text(item.product.visual, style: const TextStyle(fontSize: 24)),
+                              child: _buildProductVisual(item.product.visual),
                             ),
                           ),
                           const SizedBox(width: 16),
@@ -189,7 +194,10 @@ class CartPanel extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => CheckoutPage(cartState: cartState),
+                          builder: (context) => CheckoutPage(
+                            cartState: cartState,
+                            session: session,
+                          ),
                         ),
                       );
                     },
@@ -236,5 +244,34 @@ class CartPanel extends StatelessWidget {
         if (isDrawer) const Spacer(),
       ],
     );
+  }
+
+  Widget _buildProductVisual(String raw) {
+    final visual = raw.trim();
+    final isUrl = visual.startsWith('http://') ||
+        visual.startsWith('https://') ||
+        visual.startsWith('/');
+    final resolved = isUrl ? _apiClient.resolveMediaUrl(visual) : visual;
+
+    if (isUrl) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(10),
+        child: Image.network(
+          resolved,
+          width: 50,
+          height: 50,
+          fit: BoxFit.cover,
+          errorBuilder: (context, _, __) {
+            return const Icon(
+              Icons.image_not_supported_outlined,
+              color: Color(0xFF8F958D),
+              size: 22,
+            );
+          },
+        ),
+      );
+    }
+
+    return Text(visual, style: const TextStyle(fontSize: 24));
   }
 }

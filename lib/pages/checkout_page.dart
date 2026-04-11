@@ -1,19 +1,34 @@
 import 'package:flutter/material.dart';
+import '../data/api_client.dart';
+import '../models/address_draft.dart';
+import '../models/auth_session.dart';
 import '../models/cart_state.dart';
+import '../models/product_unit.dart';
+import '../widgets/address_form_sheet.dart';
 
 class CheckoutPage extends StatefulWidget {
   final CartState cartState;
+  final AuthSession session;
 
-  const CheckoutPage({super.key, required this.cartState});
+  const CheckoutPage({
+    super.key,
+    required this.cartState,
+    required this.session,
+  });
 
   @override
   State<CheckoutPage> createState() => _CheckoutPageState();
 }
 
 class _CheckoutPageState extends State<CheckoutPage> {
+  final ApiClient _apiClient = ApiClient();
   int _selectedPaymentMethod = 0;
   final double _deliveryFee = 45.00;
-  bool _isEditingAddress = false;
+  bool _isLoadingAddresses = true;
+  bool _isAddressBusy = false;
+  bool _isSubmitting = false;
+  List<AddressBookEntry> _addressOptions = <AddressBookEntry>[];
+  int? _selectedAddressId;
 
   final TextEditingController _savedCvvController = TextEditingController();
   final TextEditingController _newCardNumberController = TextEditingController();
@@ -22,16 +37,13 @@ class _CheckoutPageState extends State<CheckoutPage> {
   final TextEditingController _newCardCvvController = TextEditingController();
   final TextEditingController _newCardZipController = TextEditingController();
 
-  final TextEditingController _receiverNameController = TextEditingController();
-  final TextEditingController _streetNameController = TextEditingController();
-  final TextEditingController _extNumberController = TextEditingController();
-  final TextEditingController _intNumberController = TextEditingController();
-  final TextEditingController _neighborhoodController = TextEditingController();
-  final TextEditingController _stateController = TextEditingController();
-  final TextEditingController _zipCodeController = TextEditingController();
   final TextEditingController _referencesController = TextEditingController();
-  final TextEditingController _phoneController = TextEditingController();
-  final TextEditingController _cityController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAddresses();
+  }
 
   @override
   void dispose() {
@@ -42,20 +54,231 @@ class _CheckoutPageState extends State<CheckoutPage> {
     _newCardCvvController.dispose();
     _newCardZipController.dispose();
 
-    _receiverNameController.dispose();
-    _streetNameController.dispose();
-    _extNumberController.dispose();
-    _intNumberController.dispose();
-    _neighborhoodController.dispose();
-    _stateController.dispose();
-    _zipCodeController.dispose();
     _referencesController.dispose();
-    _phoneController.dispose();
-    _cityController.dispose();
     super.dispose();
   }
 
-  void _processOrder() {
+  Future<void> _loadAddresses({
+    int? preferredId,
+    String? preferredDocumentId,
+    String? preferredLabel,
+  }) async {
+    if (mounted) {
+      setState(() => _isLoadingAddresses = true);
+    }
+
+    try {
+      final rawAddresses = await _apiClient.fetchMyAddresses(
+        authToken: widget.session.jwt,
+      );
+      if (!mounted) return;
+
+      final parsed = rawAddresses
+          .map((item) {
+            try {
+              return AddressBookEntry.fromApi(item);
+            } catch (_) {
+              return null;
+            }
+          })
+          .whereType<AddressBookEntry>()
+          .toList();
+
+      int? selected = preferredId ?? _selectedAddressId;
+      if (selected == null && preferredDocumentId != null) {
+        for (final item in parsed) {
+          if (item.documentId == preferredDocumentId) {
+            selected = item.id;
+            break;
+          }
+        }
+      }
+      if (selected == null && preferredLabel != null) {
+        for (final item in parsed) {
+          if (item.rawLabel == preferredLabel) {
+            selected = item.id;
+            break;
+          }
+        }
+      }
+
+      final selectedExists = parsed.any((item) => item.id == selected);
+      if (!selectedExists) {
+        selected = parsed.isEmpty ? null : parsed.first.id;
+      }
+
+      setState(() {
+        _addressOptions = parsed;
+        _selectedAddressId = selected;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _addressOptions = <AddressBookEntry>[];
+        _selectedAddressId = null;
+      });
+    } finally {
+      if (mounted) {
+        setState(() => _isLoadingAddresses = false);
+      }
+    }
+  }
+
+  AddressBookEntry? get _selectedAddress {
+    for (final address in _addressOptions) {
+      if (address.id == _selectedAddressId) {
+        return address;
+      }
+    }
+    return null;
+  }
+
+  Future<void> _openAddAddressForm() async {
+    final draft = await showAddressFormSheet(
+      context,
+      title: 'Agregar direccion',
+      submitLabel: 'Guardar direccion',
+      initial: AddressDraft.empty(),
+    );
+    if (draft == null || !draft.hasRequiredFields) return;
+
+    await _persistAddress(
+      successMessage: 'Direccion guardada.',
+      action: () async {
+        final createdDocumentId = await _apiClient.createMyAddress(
+          authToken: widget.session.jwt,
+          userId: widget.session.userId,
+          draft: draft,
+        );
+        await _loadAddresses(preferredDocumentId: createdDocumentId);
+      },
+    );
+  }
+
+  Future<void> _openEditAddressForm() async {
+    final current = _selectedAddress;
+    if (current == null) return;
+
+    final initial = current.draft ?? AddressDraft.fromLegacyLabel(current.rawLabel);
+    final draft = await showAddressFormSheet(
+      context,
+      title: 'Editar direccion',
+      submitLabel: 'Guardar cambios',
+      initial: initial,
+    );
+    if (draft == null || !draft.hasRequiredFields) return;
+
+    await _persistAddress(
+      successMessage: 'Direccion actualizada.',
+      action: () async {
+        await _apiClient.updateMyAddress(
+          authToken: widget.session.jwt,
+          userId: widget.session.userId,
+          addressId: current.id,
+          addressDocumentId: current.documentId,
+          draft: draft,
+        );
+        await _loadAddresses(preferredId: current.id);
+      },
+    );
+  }
+
+  Future<void> _confirmDeleteAddress() async {
+    final current = _selectedAddress;
+    if (current == null) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Eliminar direccion'),
+          content: const Text('Esta accion quitara la direccion seleccionada.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancelar'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
+              child: const Text('Eliminar'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true) return;
+
+    await _persistAddress(
+      successMessage: 'Direccion eliminada.',
+      action: () async {
+        await _apiClient.deleteMyAddress(
+          authToken: widget.session.jwt,
+          userId: widget.session.userId,
+          addressId: current.id,
+          addressDocumentId: current.documentId,
+        );
+        await _loadAddresses();
+      },
+    );
+  }
+
+  Future<void> _persistAddress({
+    required String successMessage,
+    required Future<void> Function() action,
+  }) async {
+    if (_isAddressBusy) return;
+    setState(() => _isAddressBusy = true);
+
+    try {
+      await action();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(successMessage)),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('No se pudo completar la accion: $error')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isAddressBusy = false);
+      }
+    }
+  }
+
+  Widget _buildAddressAliasTag(String alias) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: const Color(0xFFE9EFE3),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        alias,
+        style: const TextStyle(
+          color: Color(0xFF2E4F2F),
+          fontWeight: FontWeight.w700,
+          fontSize: 12,
+        ),
+      ),
+    );
+  }
+
+  double _quantityForApi(CartItem item) {
+    final isGrams = item.unitLabel.trim().toLowerCase() == 'g';
+    if (item.product.unit == ProductUnit.kg && isGrams) {
+      return item.quantity / 1000;
+    }
+    return item.quantity;
+  }
+
+  Future<void> _processOrder() async {
+    if (_isSubmitting) return;
+    setState(() => _isSubmitting = true);
+
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -64,8 +287,46 @@ class _CheckoutPageState extends State<CheckoutPage> {
       ),
     );
 
-    Future.delayed(const Duration(seconds: 2), () {
-      Navigator.pop(context); // Ocultar loader
+    try {
+      final adressId = _selectedAddressId ??
+          await _apiClient.fetchMyAddressId(
+            authToken: widget.session.jwt,
+          );
+
+      if (adressId == null) {
+        throw const ApiException(
+          'No tienes una direccion registrada para completar la compra.',
+        );
+      }
+
+      final checkoutItems = widget.cartState.items
+          .map((item) => <String, dynamic>{
+                'productId': item.option.productId,
+                'quantity': _quantityForApi(item),
+              })
+          .where(
+            (item) =>
+                (item['productId'] as int? ?? 0) > 0 &&
+                (item['quantity'] as num? ?? 0) > 0,
+          )
+          .toList();
+
+      if (checkoutItems.isEmpty) {
+        throw const ApiException(
+          'No se pudo construir el pedido con los productos seleccionados.',
+        );
+      }
+
+      await _apiClient.checkoutOrder(
+        authToken: widget.session.jwt,
+        adressId: adressId,
+        items: checkoutItems,
+        deliveryFee: _deliveryFee,
+        notes: _referencesController.text,
+      );
+
+      if (!mounted) return;
+      Navigator.pop(context);
       widget.cartState.clearCart();
 
       showDialog(
@@ -74,9 +335,9 @@ class _CheckoutPageState extends State<CheckoutPage> {
         builder: (context) => AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
           icon: const Icon(Icons.check_circle, color: Color(0xFF4A7A4D), size: 64),
-          title: const Text('¡Pedido Confirmado!', style: TextStyle(fontWeight: FontWeight.bold)),
+          title: const Text('Pedido confirmado', style: TextStyle(fontWeight: FontWeight.bold)),
           content: const Text(
-            'Tu pedido ha sido recibido por los productores y está siendo preparado para su envío.',
+            'Tu pedido fue enviado correctamente y ya esta en proceso.',
             textAlign: TextAlign.center,
           ),
           actions: [
@@ -89,8 +350,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
                   padding: const EdgeInsets.symmetric(vertical: 16),
                 ),
                 onPressed: () {
-                  Navigator.pop(context); // Cierra diálogo
-                  Navigator.pop(context); // Regresa a Home
+                  Navigator.pop(context);
+                  Navigator.pop(context);
                 },
                 child: const Text('Volver al inicio', style: TextStyle(color: Colors.white, fontSize: 16)),
               ),
@@ -98,7 +359,27 @@ class _CheckoutPageState extends State<CheckoutPage> {
           ],
         ),
       );
-    });
+    } on ApiException catch (error) {
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(error.message)),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No se pudo completar el pedido. Intenta nuevamente.'),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
+    }
   }
 
   bool get _isPaymentValid {
@@ -119,16 +400,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
   }
 
   bool get _isAddressValid {
-    if (!_isEditingAddress) return true;
-
-    return _receiverNameController.text.trim().isNotEmpty &&
-           _streetNameController.text.trim().isNotEmpty &&
-           _extNumberController.text.trim().isNotEmpty &&
-           _neighborhoodController.text.trim().isNotEmpty &&
-           _stateController.text.trim().isNotEmpty &&
-           _zipCodeController.text.trim().isNotEmpty &&
-           _phoneController.text.trim().isNotEmpty &&
-           _cityController.text.trim().isNotEmpty;
+    return !_isLoadingAddresses && !_isAddressBusy && _selectedAddressId != null;
   }
 
   @override
@@ -259,7 +531,10 @@ class _CheckoutPageState extends State<CheckoutPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Dirección de entrega', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        const Text(
+          'Direccion de entrega',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
         const SizedBox(height: 12),
         Container(
           padding: const EdgeInsets.all(16),
@@ -268,110 +543,199 @@ class _CheckoutPageState extends State<CheckoutPage> {
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: Colors.grey.shade200),
           ),
-          // Mostramos el formulario o la dirección guardada según el estado
-          child: _isEditingAddress ? _buildAddressForm() : _buildSavedAddress(),
+          child: _buildDeliveryAddressContent(),
         ),
       ],
     );
   }
 
-  // VISTA: DIRECCIÓN GUARDADA
-  Widget _buildSavedAddress() {
-    return Row(
-      children: [
-        const CircleAvatar(
-          backgroundColor: Color(0xFFE9EFE3),
-          child: Icon(Icons.location_on, color: Color(0xFF4A7A4D)),
-        ),
-        const SizedBox(width: 16),
-        const Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Casa', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-              Text('Av. Universidad 123, Col. Centro\nAguascalientes, Ags.', style: TextStyle(color: Colors.grey, fontSize: 13)),
-            ],
+  Widget _buildDeliveryAddressContent() {
+    if (_isLoadingAddresses) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 8),
+        child: Center(
+          child: SizedBox(
+            width: 22,
+            height: 22,
+            child: CircularProgressIndicator(strokeWidth: 2),
           ),
         ),
-        TextButton(
-          onPressed: () {
-            setState(() {
-              _isEditingAddress = true; // Abre el formulario
-            });
-          }, 
-          child: const Text('Cambiar', style: TextStyle(color: Color(0xFF4A7A4D), fontWeight: FontWeight.bold)),
-        )
-      ],
-    );
-  }
+      );
+    }
 
-  // VISTA: FORMULARIO DE NUEVA DIRECCIÓN
-  Widget _buildAddressForm() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text('Nueva Dirección', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-            TextButton(
-              onPressed: () {
-                setState(() {
-                  _isEditingAddress = false; // Regresa a la dirección guardada
-                });
-              },
-              child: const Text('Cancelar', style: TextStyle(color: Colors.redAccent)),
-            )
+            const Icon(Icons.location_on, color: Color(0xFF4A7A4D)),
+            const SizedBox(width: 8),
+            const Expanded(
+              child: Text(
+                'Selecciona tu direccion de entrega',
+                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+              ),
+            ),
+            OutlinedButton.icon(
+              onPressed: _isAddressBusy ? null : _openAddAddressForm,
+              icon: const Icon(Icons.add_location_alt_outlined, size: 18),
+              label: const Text('Agregar'),
+            ),
           ],
         ),
         const SizedBox(height: 16),
-        _buildTextField(_receiverNameController, 'Nombre del receptor*'),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(flex: 2, child: _buildTextField(_streetNameController, 'Calle*')),
-            const SizedBox(width: 12),
-            Expanded(child: _buildTextField(_extNumberController, 'No. Ext*')),
-            const SizedBox(width: 12),
-            Expanded(child: _buildTextField(_intNumberController, 'No. Int')),
-          ],
+        if (_addressOptions.isEmpty) _buildEmptyAddressState(),
+        if (_addressOptions.isNotEmpty) ...[
+          ..._addressOptions.map(_buildAddressCard),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _isAddressBusy || _selectedAddress == null
+                      ? null
+                      : _openEditAddressForm,
+                  icon: const Icon(Icons.edit_location_alt_outlined, size: 18),
+                  label: const Text('Editar'),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _isAddressBusy || _selectedAddress == null
+                      ? null
+                      : _confirmDeleteAddress,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.redAccent,
+                    side: const BorderSide(color: Colors.redAccent),
+                  ),
+                  icon: const Icon(Icons.delete_outline, size: 18),
+                  label: const Text('Eliminar'),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+        ],
+        TextField(
+          controller: _referencesController,
+          maxLines: 2,
+          decoration: const InputDecoration(
+            labelText: 'Notas de entrega (opcional)',
+            border: OutlineInputBorder(),
+            isDense: true,
+          ),
+          onChanged: (_) => setState(() {}),
         ),
-        const SizedBox(height: 12),
-        _buildTextField(_neighborhoodController, 'Colonia / Vecindario*'),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(child: _buildTextField(_cityController, 'Ciudad*')),
-            const SizedBox(width: 12),
-            Expanded(child: _buildTextField(_stateController, 'Estado*')),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(child: _buildTextField(_zipCodeController, 'Código Postal*', keyboardType: TextInputType.number)),
-            const SizedBox(width: 12),
-            Expanded(flex: 2, child: _buildTextField(_phoneController, 'Teléfono*', keyboardType: TextInputType.phone)),
-          ],
-        ),
-        const SizedBox(height: 12),
-        _buildTextField(_referencesController, 'Referencias (opcional)', maxLines: 2),
       ],
     );
   }
 
-  // Widget auxiliar para crear TextFields más rápido y limpios
-  Widget _buildTextField(TextEditingController controller, String label, {TextInputType keyboardType = TextInputType.text, int maxLines = 1}) {
-    return TextField(
-      controller: controller,
-      keyboardType: keyboardType,
-      maxLines: maxLines,
-      decoration: InputDecoration(
-        labelText: label,
-        border: const OutlineInputBorder(),
-        isDense: true,
+  Widget _buildEmptyAddressState() {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8F5EF),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE2DBCF)),
       ),
-      onChanged: (_) => setState(() {}), // Refresca para la validación del botón
+      child: const Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'No hay direcciones guardadas.',
+            style: TextStyle(fontWeight: FontWeight.w700),
+          ),
+          SizedBox(height: 4),
+          Text(
+            'Agrega una direccion para continuar con tu compra.',
+            style: TextStyle(color: Color(0xFF6E6259)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAddressCard(AddressBookEntry address) {
+    final selected = _selectedAddressId == address.id;
+    return InkWell(
+      onTap: _isAddressBusy
+          ? null
+          : () => setState(() => _selectedAddressId = address.id),
+      borderRadius: BorderRadius.circular(14),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: selected ? const Color(0xFFE9EFE3) : Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: selected ? const Color(0xFF2E4F2F) : const Color(0xFFE0D8CD),
+            width: selected ? 1.5 : 1,
+          ),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Radio<int>(
+              value: address.id,
+              groupValue: _selectedAddressId,
+              activeColor: const Color(0xFF2E4F2F),
+              onChanged: _isAddressBusy
+                  ? null
+                  : (value) => setState(() => _selectedAddressId = value),
+            ),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      _buildAddressAliasTag(address.alias),
+                      if (selected) ...[
+                        const SizedBox(width: 8),
+                        const Icon(
+                          Icons.check_circle,
+                          size: 16,
+                          color: Color(0xFF2E4F2F),
+                        ),
+                      ],
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    address.primaryLine,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF1F1209),
+                    ),
+                  ),
+                  if (address.secondaryLine != null) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      address.secondaryLine!,
+                      style: const TextStyle(color: Color(0xFF6E6259)),
+                    ),
+                  ],
+                  if (address.contactLine != null) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      address.contactLine!,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF6E6259),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -563,6 +927,17 @@ class _CheckoutPageState extends State<CheckoutPage> {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Center(
+                    child: _buildMiniProductVisual(item.product.visual),
+                  ),
+                ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -643,6 +1018,35 @@ class _CheckoutPageState extends State<CheckoutPage> {
     return summaryContent;
   }
 
+  Widget _buildMiniProductVisual(String raw) {
+    final visual = raw.trim();
+    final isUrl = visual.startsWith('http://') ||
+        visual.startsWith('https://') ||
+        visual.startsWith('/');
+    final resolved = isUrl ? _apiClient.resolveMediaUrl(visual) : visual;
+
+    if (isUrl) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: Image.network(
+          resolved,
+          width: 38,
+          height: 38,
+          fit: BoxFit.cover,
+          errorBuilder: (context, _, __) {
+            return const Icon(
+              Icons.image_not_supported_outlined,
+              size: 16,
+              color: Color(0xFF8F958D),
+            );
+          },
+        ),
+      );
+    }
+
+    return Text(visual, style: const TextStyle(fontSize: 14));
+  }
+
   Widget _buildConfirmButton() {
     return SizedBox(
       width: double.infinity,
@@ -652,7 +1056,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
           backgroundColor: const Color(0xFF2E4F2F),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         ),
-        onPressed: (widget.cartState.items.isEmpty || !_isPaymentValid || !_isAddressValid) 
+        onPressed: (widget.cartState.items.isEmpty || !_isPaymentValid || !_isAddressValid || _isSubmitting) 
           ? null 
           : _processOrder,
         child: const Text(
@@ -663,3 +1067,4 @@ class _CheckoutPageState extends State<CheckoutPage> {
     );
   }
 }
+

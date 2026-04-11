@@ -24,6 +24,7 @@ class _SellerProductsPageState extends State<SellerProductsPage> {
   bool _isLoading = true;
   String? _errorMessage;
   List<SellerProduct> _products = <SellerProduct>[];
+  final Set<int> _deactivationInProgress = <int>{};
 
   @override
   void initState() {
@@ -71,6 +72,86 @@ class _SellerProductsPageState extends State<SellerProductsPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Producto creado correctamente.')),
       );
+    }
+  }
+
+  Future<void> _requestDeactivation(SellerProduct product) async {
+    final shouldContinue = await showDialog<bool>(
+          context: context,
+          builder: (context) {
+            return AlertDialog(
+              title: const Text('Solicitar baja'),
+              content: Text(
+                'Se enviara la solicitud para dar de baja el producto "${product.name}".',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(false),
+                  child: const Text('Cancelar'),
+                ),
+                ElevatedButton(
+                  onPressed: () => Navigator.of(context).pop(true),
+                  child: const Text('Solicitar'),
+                ),
+              ],
+            );
+          },
+        ) ??
+        false;
+
+    if (!shouldContinue) {
+      return;
+    }
+
+    setState(() {
+      _deactivationInProgress.add(product.id);
+    });
+
+    try {
+      await _sellerApiService.requestProductDeactivation(
+        session: widget.session,
+        productId: product.id,
+      );
+      if (!mounted) return;
+
+      setState(() {
+        _products = _products
+            .map(
+              (item) => item.id == product.id
+                  ? SellerProduct(
+                      id: item.id,
+                      documentId: item.documentId,
+                      name: item.name,
+                      price: item.price,
+                      stock: item.stock,
+                      isActive: false,
+                      sku: item.sku,
+                      unit: item.unit,
+                      minOrderQty: item.minOrderQty,
+                      categoryId: item.categoryId,
+                      categoryName: item.categoryName,
+                      description: item.description,
+                      images: item.images,
+                    )
+                  : item,
+            )
+            .toList();
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Solicitud de baja enviada.')),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error.toString())),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _deactivationInProgress.remove(product.id);
+        });
+      }
     }
   }
 
@@ -124,7 +205,13 @@ class _SellerProductsPageState extends State<SellerProductsPage> {
                 separatorBuilder: (_, __) => const SizedBox(height: 12),
                 itemBuilder: (context, index) {
                   final product = _products[index];
-                  return _ProductTile(product: product);
+                  return _ProductTile(
+                    product: product,
+                    canRequestDeactivation: product.isActive,
+                    isSubmittingDeactivation:
+                        _deactivationInProgress.contains(product.id),
+                    onRequestDeactivation: () => _requestDeactivation(product),
+                  );
                 },
               ),
             );
@@ -136,9 +223,17 @@ class _SellerProductsPageState extends State<SellerProductsPage> {
 }
 
 class _ProductTile extends StatelessWidget {
-  const _ProductTile({required this.product});
+  const _ProductTile({
+    required this.product,
+    required this.canRequestDeactivation,
+    required this.isSubmittingDeactivation,
+    required this.onRequestDeactivation,
+  });
 
   final SellerProduct product;
+  final bool canRequestDeactivation;
+  final bool isSubmittingDeactivation;
+  final VoidCallback onRequestDeactivation;
 
   @override
   Widget build(BuildContext context) {
@@ -218,6 +313,27 @@ class _ProductTile extends StatelessWidget {
                       label: product.unit ?? 'Sin unidad',
                     ),
                   ],
+                ),
+                const SizedBox(height: 12),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: OutlinedButton.icon(
+                    onPressed: (!canRequestDeactivation || isSubmittingDeactivation)
+                        ? null
+                        : onRequestDeactivation,
+                    icon: isSubmittingDeactivation
+                        ? const SizedBox(
+                            width: 14,
+                            height: 14,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.remove_circle_outline),
+                    label: Text(
+                      canRequestDeactivation
+                          ? 'Solicitar baja'
+                          : 'Producto inactivo',
+                    ),
+                  ),
                 ),
               ],
             ),

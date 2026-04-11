@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import '../data/api_client.dart';
 
 class MarketProductCard extends StatelessWidget {
+  static final ApiClient _apiClient = ApiClient();
   final String imageUrl;
   final String productName;
   final String priceDisplay;
@@ -24,6 +26,44 @@ class MarketProductCard extends StatelessWidget {
       return _buildCompactCard();
     }
     return _buildGridCard();
+  }
+
+  String? get _resolvedImageUrl {
+    final raw = imageUrl.trim();
+    if (raw.isEmpty) return null;
+    final hasHttp = raw.startsWith('http://') || raw.startsWith('https://');
+    final looksLikeMediaPath = raw.startsWith('/');
+    if (!hasHttp && !looksLikeMediaPath) {
+      return null;
+    }
+    return _apiClient.resolveMediaUrl(raw);
+  }
+
+  Widget _buildVisual(double size) {
+    final resolvedImage = _resolvedImageUrl;
+    if (resolvedImage != null) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Image.network(
+          resolvedImage,
+          width: size,
+          height: size,
+          fit: BoxFit.cover,
+          errorBuilder: (context, _, __) {
+            return Icon(
+              Icons.image_not_supported_outlined,
+              size: size * 0.45,
+              color: const Color(0xFF8F958D),
+            );
+          },
+        ),
+      );
+    }
+
+    return Text(
+      imageUrl,
+      style: TextStyle(fontSize: size * 0.45),
+    );
   }
 
   // ==========================================
@@ -52,10 +92,7 @@ class MarketProductCard extends StatelessWidget {
               borderRadius: BorderRadius.horizontal(left: Radius.circular(20)),
             ),
             child: Center(
-              child: Text(
-                imageUrl,
-                style: const TextStyle(fontSize: 45),
-              ),
+              child: _buildVisual(90),
             ),
           ),
           Expanded(
@@ -146,10 +183,7 @@ class MarketProductCard extends StatelessWidget {
                 borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
               ),
               child: Center(
-                child: Text(
-                  imageUrl,
-                  style: const TextStyle(fontSize: 50),
-                ),
+                child: _buildVisual(110),
               ),
             ),
           ),

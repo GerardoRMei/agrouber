@@ -5,6 +5,7 @@ import '../data/api_client.dart';
 import '../models/auth_session.dart';
 import '../models/cart_state.dart';
 import '../models/marketplace_product.dart';
+import 'customer_orders_page.dart';
 import '../widgets/home_app_bar.dart';
 import '../widgets/market_product_card.dart';
 import '../widgets/welcome_header.dart';
@@ -92,6 +93,14 @@ class _BuyerHomePageState extends State<BuyerHomePage> {
     }
   }
 
+  Future<void> _openMyOrders() {
+    return Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => CustomerOrdersPage(session: widget.session),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final categories = _displayProducts
@@ -118,6 +127,7 @@ class _BuyerHomePageState extends State<BuyerHomePage> {
         width: 400,
         child: CartPanel(
           cartState: _cartState,
+          session: widget.session,
           isDrawer: true,
         ),
       ),
@@ -180,6 +190,15 @@ class _BuyerHomePageState extends State<BuyerHomePage> {
                   children: [
                     WelcomeHeader(userName: widget.session.displayName),
                     const SizedBox(height: 24),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: OutlinedButton.icon(
+                        onPressed: _openMyOrders,
+                        icon: const Icon(Icons.receipt_long_outlined),
+                        label: const Text('Ver compras pasadas'),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
                     _buildSearchAndFilters(categories, constraints),
                     const SizedBox(height: 32),
                     Text(

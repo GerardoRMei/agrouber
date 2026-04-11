@@ -1,5 +1,9 @@
+import 'package:image_picker/image_picker.dart';
+
 import '../models/auth_session.dart';
 import '../models/seller_category.dart';
+import '../models/order_summary.dart';
+import '../models/seller_sales_metrics.dart';
 import '../models/seller_product.dart';
 import '../models/seller_product_request.dart';
 import '../models/seller_profile.dart';
@@ -101,6 +105,94 @@ class SellerApiService {
     }
 
     throw const ApiException('No se pudo interpretar la respuesta del producto.');
+  }
+
+  Future<int> uploadProductImage({
+    required AuthSession session,
+    required XFile image,
+  }) async {
+    final uploaded = await _apiClient.uploadFiles(
+      '/api/upload',
+      authToken: session.jwt,
+      files: <XFile>[image],
+    );
+
+    if (uploaded.isEmpty) {
+      throw const ApiException('No se pudo subir la imagen del producto.');
+    }
+
+    final imageId = (uploaded.first['id'] as num?)?.toInt();
+    if (imageId == null || imageId <= 0) {
+      throw const ApiException('El servidor no devolvio un id de imagen valido.');
+    }
+
+    return imageId;
+  }
+
+  Future<List<OrderSummary>> fetchMySales(AuthSession session) {
+    return _apiClient.fetchSellerOrders(
+      authToken: session.jwt,
+      sellerUserId: session.userId,
+    );
+  }
+
+  Future<SellerSalesMetrics> fetchSalesMetrics(
+    AuthSession session, {
+    required String from,
+    required String to,
+  }) async {
+    final response = await _apiClient.getJson(
+      '/api/sellers/me/sales-metrics',
+      authToken: session.jwt,
+      queryParameters: <String, String>{
+        'from': from,
+        'to': to,
+      },
+    );
+
+    return SellerSalesMetrics.fromJson(response);
+  }
+
+  Future<void> requestProductDeactivation({
+    required AuthSession session,
+    required int productId,
+  }) async {
+    Object? lastError;
+
+    final attempts = <Future<dynamic> Function()>[
+      () => _apiClient.postDynamic(
+            '/api/sellers/products/$productId/deactivation-request',
+            authToken: session.jwt,
+            body: const <String, dynamic>{},
+          ),
+      () => _apiClient.postDynamic(
+            '/api/sellers/products/$productId/request-deactivation',
+            authToken: session.jwt,
+            body: const <String, dynamic>{},
+          ),
+      () => _apiClient.patchDynamic(
+            '/api/sellers/products/$productId',
+            authToken: session.jwt,
+            body: const <String, dynamic>{
+              'isActive': false,
+              'deactivationRequested': true,
+            },
+          ),
+    ];
+
+    for (final attempt in attempts) {
+      try {
+        await attempt();
+        return;
+      } catch (error) {
+        lastError = error;
+      }
+    }
+
+    if (lastError is Exception) {
+      throw lastError;
+    }
+    throw const ApiException('No se pudo solicitar la baja del producto.');
   }
 
   List<Map<String, dynamic>> _normalizeItems(dynamic response) {

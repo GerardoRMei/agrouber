@@ -1,4 +1,7 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../data/seller_api_service.dart';
 import '../models/auth_session.dart';
@@ -19,6 +22,7 @@ class SellerProductFormPage extends StatefulWidget {
 
 class _SellerProductFormPageState extends State<SellerProductFormPage> {
   final SellerApiService _sellerApiService = SellerApiService();
+  final ImagePicker _imagePicker = ImagePicker();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _priceController = TextEditingController();
@@ -33,6 +37,7 @@ class _SellerProductFormPageState extends State<SellerProductFormPage> {
   List<SellerCategory> _categories = <SellerCategory>[];
   SellerCategory? _selectedCategory;
   String _selectedUnit = 'kg';
+  List<XFile> _selectedImages = <XFile>[];
 
   static const List<String> _units = <String>[
     'kg',
@@ -102,12 +107,28 @@ class _SellerProductFormPageState extends State<SellerProductFormPage> {
       return;
     }
 
+    if (_selectedImages.isEmpty) {
+      setState(() {
+        _errorMessage = 'Debes seleccionar al menos una imagen del producto.';
+      });
+      return;
+    }
+
     setState(() {
       _isSubmitting = true;
       _errorMessage = null;
     });
 
     try {
+      final imageIds = <int>[];
+      for (final image in _selectedImages) {
+        final imageId = await _sellerApiService.uploadProductImage(
+          session: widget.session,
+          image: image,
+        );
+        imageIds.add(imageId);
+      }
+
       final request = SellerProductRequest(
         name: _nameController.text.trim(),
         price: double.parse(_priceController.text.trim()),
@@ -121,6 +142,7 @@ class _SellerProductFormPageState extends State<SellerProductFormPage> {
         description: _descriptionController.text.trim().isEmpty
             ? null
             : _descriptionController.text.trim(),
+        imageIds: imageIds,
       );
 
       await _sellerApiService.createProduct(
@@ -217,93 +239,82 @@ class _SellerProductFormPageState extends State<SellerProductFormPage> {
                               },
                             ),
                             const SizedBox(height: 16),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: _buildTextField(
-                                    controller: _priceController,
-                                    label: 'Precio',
-                                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                    validator: _validateDecimal,
-                                  ),
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: _buildTextField(
-                                    controller: _stockController,
-                                    label: 'Stock',
-                                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                    validator: _validateDecimal,
-                                  ),
-                                ),
-                              ],
+                            _buildResponsivePair(
+                              left: _buildTextField(
+                                controller: _priceController,
+                                label: 'Precio',
+                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                validator: _validateDecimal,
+                              ),
+                              right: _buildTextField(
+                                controller: _stockController,
+                                label: 'Stock',
+                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                validator: _validateDecimal,
+                              ),
                             ),
                             const SizedBox(height: 16),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: DropdownButtonFormField<String>(
-                                    value: _selectedUnit,
-                                    decoration: _inputDecoration('Unidad'),
-                                    items: _units
-                                        .map(
-                                          (unit) => DropdownMenuItem<String>(
-                                            value: unit,
-                                            child: Text(unit),
-                                          ),
-                                        )
-                                        .toList(),
-                                    onChanged: (value) {
-                                      if (value == null) {
-                                        return;
-                                      }
-                                      setState(() {
-                                        _selectedUnit = value;
-                                      });
-                                    },
-                                  ),
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: DropdownButtonFormField<SellerCategory>(
-                                    value: _selectedCategory,
-                                    decoration: _inputDecoration('Categoria'),
-                                    items: _categories
-                                        .map(
-                                          (category) => DropdownMenuItem<SellerCategory>(
-                                            value: category,
-                                            child: Text(category.name),
-                                          ),
-                                        )
-                                        .toList(),
-                                    onChanged: (value) {
-                                      setState(() {
-                                        _selectedCategory = value;
-                                      });
-                                    },
-                                  ),
-                                ),
-                              ],
+                            _buildResponsivePair(
+                              left: DropdownButtonFormField<String>(
+                                value: _selectedUnit,
+                                isExpanded: true,
+                                decoration: _inputDecoration('Unidad'),
+                                items: _units
+                                    .map(
+                                      (unit) => DropdownMenuItem<String>(
+                                        value: unit,
+                                        child: Text(
+                                          unit,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    )
+                                    .toList(),
+                                onChanged: (value) {
+                                  if (value == null) {
+                                    return;
+                                  }
+                                  setState(() {
+                                    _selectedUnit = value;
+                                  });
+                                },
+                              ),
+                              right: DropdownButtonFormField<SellerCategory>(
+                                value: _selectedCategory,
+                                isExpanded: true,
+                                decoration: _inputDecoration('Categoria'),
+                                items: _categories
+                                    .map(
+                                      (category) => DropdownMenuItem<SellerCategory>(
+                                        value: category,
+                                        child: Text(
+                                          category.name,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    )
+                                    .toList(),
+                                onChanged: (value) {
+                                  setState(() {
+                                    _selectedCategory = value;
+                                  });
+                                },
+                              ),
                             ),
                             const SizedBox(height: 16),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: _buildTextField(
-                                    controller: _skuController,
-                                    label: 'SKU (opcional)',
-                                  ),
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: _buildTextField(
-                                    controller: _minOrderQtyController,
-                                    label: 'Pedido minimo (opcional)',
-                                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                    validator: _validateOptionalDecimal,
-                                  ),
-                                ),
-                              ],
+                            _buildResponsivePair(
+                              left: _buildTextField(
+                                controller: _skuController,
+                                label: 'SKU (opcional)',
+                              ),
+                              right: _buildTextField(
+                                controller: _minOrderQtyController,
+                                label: 'Pedido minimo (opcional)',
+                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                validator: _validateOptionalDecimal,
+                              ),
                             ),
                             const SizedBox(height: 16),
                             _buildTextField(
@@ -311,6 +322,8 @@ class _SellerProductFormPageState extends State<SellerProductFormPage> {
                               label: 'Descripcion (opcional)',
                               maxLines: 4,
                             ),
+                            const SizedBox(height: 16),
+                            _buildImagePickerSection(),
                             const SizedBox(height: 24),
                             SizedBox(
                               width: double.infinity,
@@ -353,6 +366,184 @@ class _SellerProductFormPageState extends State<SellerProductFormPage> {
     );
   }
 
+  Widget _buildImagePickerSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Imagenes del producto (obligatorio, maximo 5)',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 10),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minWidth: constraints.maxWidth),
+                child: Row(
+                  children: [
+                    ElevatedButton.icon(
+                      onPressed: _isSubmitting ? null : _pickImage,
+                      icon: const Icon(Icons.image_outlined),
+                      label: const Text('Seleccionar imagenes'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFECE3D6),
+                        foregroundColor: const Color(0xFF1F1209),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      '${_selectedImages.length}/5',
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                    if (_selectedImages.isNotEmpty) ...[
+                      const SizedBox(width: 12),
+                      TextButton(
+                        onPressed: _isSubmitting
+                            ? null
+                            : () {
+                                setState(() {
+                                  _selectedImages = <XFile>[];
+                                });
+                              },
+                        child: const Text('Limpiar'),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
+        if (_selectedImages.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 130,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: _selectedImages.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 10),
+              itemBuilder: (context, index) {
+                final image = _selectedImages[index];
+                return Stack(
+                  children: [
+                    FutureBuilder<Uint8List>(
+                      future: image.readAsBytes(),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return Container(
+                            width: 130,
+                            height: 130,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF8F4EE),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Center(
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          );
+                        }
+
+                        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                          return Container(
+                            width: 130,
+                            height: 130,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF8F4EE),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Text(
+                              'Error',
+                              style: TextStyle(color: Colors.redAccent),
+                            ),
+                          );
+                        }
+
+                        return ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: Image.memory(
+                            snapshot.data!,
+                            width: 130,
+                            height: 130,
+                            fit: BoxFit.cover,
+                          ),
+                        );
+                      },
+                    ),
+                    Positioned(
+                      top: 4,
+                      right: 4,
+                      child: InkWell(
+                        onTap: _isSubmitting
+                            ? null
+                            : () {
+                                setState(() {
+                                  _selectedImages = List<XFile>.from(_selectedImages)
+                                    ..removeAt(index);
+                                });
+                              },
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: const BoxDecoration(
+                            color: Colors.black54,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.close,
+                            size: 14,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Future<void> _pickImage() async {
+    try {
+      final images = await _imagePicker.pickMultiImage(imageQuality: 85);
+
+      if (!mounted || images.isEmpty) {
+        return;
+      }
+
+      final merged = <XFile>[
+        ..._selectedImages,
+        ...images,
+      ];
+      final limited = merged.take(5).toList();
+
+      setState(() {
+        _selectedImages = limited;
+        if (merged.length > 5) {
+          _errorMessage = 'Solo se permiten maximo 5 imagenes por producto.';
+        } else {
+          _errorMessage = null;
+        }
+      });
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _errorMessage = 'No se pudo seleccionar la imagen.';
+      });
+    }
+  }
+
   Widget _buildTextField({
     required TextEditingController controller,
     required String label,
@@ -366,6 +557,30 @@ class _SellerProductFormPageState extends State<SellerProductFormPage> {
       validator: validator,
       maxLines: maxLines,
       decoration: _inputDecoration(label),
+    );
+  }
+
+  Widget _buildResponsivePair({
+    required Widget left,
+    required Widget right,
+  }) {
+    final compact = MediaQuery.of(context).size.width < 720;
+    if (compact) {
+      return Column(
+        children: [
+          left,
+          const SizedBox(height: 16),
+          right,
+        ],
+      );
+    }
+
+    return Row(
+      children: [
+        Expanded(child: left),
+        const SizedBox(width: 16),
+        Expanded(child: right),
+      ],
     );
   }
 

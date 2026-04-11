@@ -74,7 +74,7 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
           icon: const Icon(Icons.home_rounded, color: Colors.white),
           onPressed: () {},
         ),
-        _CartAction(cartState: cartState),
+        _CartAction(cartState: cartState, session: session),
         Padding(
           padding: EdgeInsets.only(right: hPadding),
           child: IconButton(
@@ -92,8 +92,12 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
 
 class _CartAction extends StatelessWidget {
   final CartState cartState;
+  final AuthSession session;
   
-  const _CartAction({required this.cartState});
+  const _CartAction({
+    required this.cartState,
+    required this.session,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -137,7 +141,10 @@ class _CartAction extends StatelessWidget {
                 context: scaffoldContext,
                 isScrollControlled: true,
                 backgroundColor: Colors.transparent,
-                builder: (context) => CartPanel(cartState: cartState),
+                builder: (context) => CartPanel(
+                  cartState: cartState,
+                  session: session,
+                ),
               );
             } else {
               Scaffold.of(scaffoldContext).openEndDrawer();
